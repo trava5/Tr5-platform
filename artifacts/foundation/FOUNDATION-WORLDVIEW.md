@@ -1,80 +1,53 @@
 # FOUNDATIONAL-WORLDVIEW
 
-Status: Draft
+Status: Accepted
 
 ---
 
-## 0. Metadata
+## 0. Vision
 
-> Placeholder.
-> Metadata standard will be defined later.
+> Vision
 
+> Tr5 represents a world in which understanding is continuously discovered, 
+> preserved, and refined while the world constantly evolves.
 ---
 
-## 1. Preamble
 
-> Before defining how we build, we define how we think.
-> Before defining processes, we define the model of the world in which those processes exist.
+## 1. Representation
 
+> In this world, every entity is represented as an Artifact 
+> existing in its current State.
 ---
 
-## 2. Purpose
 
-> Placeholder.
-> Explains why this document exists.
+## 2. Replaceability
 
+> Every Artifact is replaceable.
 ---
 
-## 3. World Model
 
-> Placeholder.
-> Introduces the concepts that exist in our engineering world.
+## 3. Changeability
 
+> Every State is changeable.
 ---
 
-## 4. Axioms
 
-> Placeholder.
-> Contains the minimal assumptions describing the world.
+## 4. Evolution
 
+> Everything in Tr5 is designed to evolve.
 ---
 
-## 5. Definitions
 
-> Placeholder.
-> Defines the meaning of the core concepts.
+## 5. Governed Evolution
 
+> The evolution itself is governed by explicit decisions.
 ---
 
-## 6. Principles
 
-> Placeholder.
-> Lists the engineering principles derived from the worldview.
+## 6. Purpose
 
+> Tr5 exists to provide a safe and predictable environment 
+> for creating software and other systems according to 
+> well-defined architectural principles. Philosophy serves engineering, 
+> not the other way around.
 ---
-
-## 7. Consequences
-
-> Placeholder.
-> Describes the logical consequences of accepted axioms.
-
----
-
-## 8. Out of Scope
-
-> Placeholder.
-> Explicitly states what this document does not define.
-
----
-
-## 9. Evolution
-
-> Placeholder.
-> Defines how this artifact may evolve.
-
----
-
-## 10. References
-
-> Placeholder.
-> References related artifacts.
