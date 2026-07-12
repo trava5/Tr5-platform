@@ -8,4 +8,4 @@ The project follows the principle:
 
 The primary entry point to the project's philosophy is:
 
-artifacts/foundation/FOUNDATIONAL-WORLDVIEW.md
+artifacts/foundation/FOUNDATIONAL_WORLDVIEW.md

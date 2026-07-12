@@ -1,6 +1,6 @@
-# IMPLEMENTATION-CONTRACT-0001
+# IMPLEMENTATION_CONTRACT_0001
 
-Status: Accepted
+Status: Accepted (Revision 1.1 — see Revision Notes)
 
 ---
 
@@ -58,7 +58,7 @@ Repository Root
 
 # Outputs
 
-Tr5-CURRENT-STATE.md
+TR5_CURRENT_STATE.md
 
 ---
 
@@ -71,7 +71,7 @@ The implementation SHALL:
 - discover files
 - classify artifacts
 - collect basic metadata
-- generate Tr5-CURRENT-STATE.md
+- generate TR5_CURRENT_STATE.md
 
 ---
 
@@ -108,10 +108,13 @@ The generated document SHALL contain:
 
 - Repository structure
 - Artifact list
-- Generation timestamp
-- Generator identification
+- Generator identification (name and version)
 
-The output SHALL be deterministic.
+The output SHALL be deterministic:
+the same repository state SHALL always produce byte-identical output.
+
+For this reason the output SHALL NOT contain a generation timestamp.
+(Timestamps belong to version control, not to the Current State document.)
 
 ---
 
@@ -163,7 +166,7 @@ The implementation is accepted when:
 - the repository is successfully scanned
 - all artifacts are discovered
 - artifact types are classified
-- Tr5-CURRENT-STATE.md is generated
+- TR5_CURRENT_STATE.md is generated
 - the output is deterministic
 - README.md exists for the Discovery Engine
 
@@ -195,3 +198,15 @@ These capabilities are intentionally excluded from Version 1.0.
 # Lessons Learned
 
 (To be completed after implementation.)
+---
+
+# Revision Notes
+
+## Revision 1.1
+
+- Removed the generation timestamp from the required output.
+  Reason: a timestamp contradicts the requirement of deterministic output.
+  Determinism is the more important property — it makes changes to
+  TR5_CURRENT_STATE.md meaningful in version control.
+- File and output names aligned with the accepted naming convention
+  (UPPERCASE_WITH_UNDERSCORES, no hyphens, no diacritics).
