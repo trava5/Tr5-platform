@@ -73,6 +73,10 @@ The implementation SHALL:
 - collect basic metadata
 - generate TR5_CURRENT_STATE.md
 
+> Status: Done — implemented in `tools/discovery_engine/generate_current_state.py`
+> (scan_repository, classify_artifact, render_markdown, save_current_state).
+> `.git/`, `.venv/`, `.idea/` are excluded from the scan (see Completion Notes).
+
 ---
 
 # Artifact Classification
@@ -116,6 +120,10 @@ the same repository state SHALL always produce byte-identical output.
 For this reason the output SHALL NOT contain a generation timestamp.
 (Timestamps belong to version control, not to the Current State document.)
 
+> Status: Done — verified by running the generator twice against an
+> unchanged repository state and diffing the output (byte-identical).
+> No timestamp is written.
+
 ---
 
 # Repository Structure
@@ -140,6 +148,10 @@ Create README.md describing:
 - Current capabilities
 - Current limitations
 - Expected evolution
+
+> Status: Done — `tools/discovery_engine/README.md` rewritten with exactly
+> these five sections. Renamed from `READMe.md` (casing typo) to `README.md`
+> to match the Repository Structure section below (light-path fix, P12).
 
 ---
 
@@ -170,6 +182,8 @@ The implementation is accepted when:
 - the output is deterministic
 - README.md exists for the Discovery Engine
 
+> Status: Done — all six criteria verified. See Completion Notes.
+
 ---
 
 # Future Evolution
@@ -191,13 +205,42 @@ These capabilities are intentionally excluded from Version 1.0.
 
 # Completion Notes
 
-(To be completed after implementation.)
+Implemented `tools/discovery_engine/generate_current_state.py` per the
+pipeline described in the Discovery Engine README: filesystem discovery →
+artifact classification → metadata collection → markdown rendering →
+`TR5_CURRENT_STATE.md`.
+
+`generate_current_state.py` walks the Repository Root (defaults to the
+directory two levels above the script, i.e. the repository root; overridable
+via an optional CLI argument), classifies each artifact, and writes
+`TR5_CURRENT_STATE.md` at the Repository Root with LF line endings and no
+timestamp. Verified deterministic by running it twice against an unchanged
+repository state and diffing the byte-identical output.
+
+`tools/discovery_engine/READMe.md` was renamed to `README.md` (casing typo)
+and rewritten to the five sections required by this Contract.
+
+Ran against the actual repository; output reviewed manually and matches the
+current repository contents (see `TR5_CURRENT_STATE.md`).
 
 ---
 
 # Lessons Learned
 
-(To be completed after implementation.)
+The working tree contains directories that are not Tr5 platform content:
+`.git/` (VCS internals), `.venv/` (virtual environment, 764 files — the
+large majority of the raw filesystem), and `.idea/` (IDE state). The
+Contract did not specify how to treat these, and scanning them literally
+would have made `TR5_CURRENT_STATE.md` almost entirely pip-package noise
+rather than a representation of the platform. Per P11, this was raised to
+the Architect rather than decided unilaterally; the Architect chose to
+exclude `.git/`, `.venv/`, and `.idea/` by name
+(`EXCLUDED_DIRECTORY_NAMES` in `generate_current_state.py`).
+
+This exclusion list is currently hardcoded and undocumented at the Contract
+level. A future Contract revision may want to formalize an ignore-list
+mechanism (e.g. respecting `.gitignore`, or an explicit Discovery Engine
+config) rather than relying on a hardcoded constant in the implementation.
 ---
 
 # Revision Notes
