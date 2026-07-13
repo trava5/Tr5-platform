@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0002
 
-Status: Accepted
+Status: Implemented
 
 > Status: Implemented — see Completion Notes and per-section annotations
 > below.
@@ -204,6 +204,23 @@ The implementation is accepted when:
 
 ---
 
+# Architecture Review
+
+### Round 1 — 2026-07-13 — Verdict: Accepted
+Reviewer: Architect
+
+Reviewed against P9 (validate on the smallest case) and P12 (process weight
+matches decision weight) before drafting was even complete: `backend/` was
+selected as the transfer's first slice specifically because it was verified
+dependency-free of `main.py` and `app_config.py` (checked via `grep` across
+the source tree), making it the lowest-risk real slice available — not
+`actions/`, `features/`, or `main.py` itself. Scope was deliberately kept to
+a single package with a pinned source commit for reproducibility. No
+conflict found with `FOUNDATIONAL_WORLDVIEW.md` or `PRINCIPLES.md`. Accepted
+as drafted, no revision needed before implementation.
+
+---
+
 # Future Evolution
 
 - Phase 2: transfer `actions/` and `features/`, wired into this backend.
@@ -242,6 +259,27 @@ not this backend service's, and are out of scope here. Verification used a
 disposable venv and a non-default port, both removed after the boot/status
 check; no database was configured, so the service ran on the in-memory
 fallback, which is the expected standalone behavior per `storage.py`.
+
+---
+
+# Implementation Review
+
+### Round 1 — 2026-07-13 — Verdict: Accepted
+Reviewer: Architect
+
+Verified independently, not by trusting the Agent's Completion Notes alone:
+(1) diffed the transferred `backend/` tree against a fresh clone of the
+pinned source commit — confirmed file-for-file identical, no additions, no
+omissions; (2) built a disposable virtualenv from the delivered
+`requirements.txt` and actually booted the service with `uvicorn`
+(`backend.app:app`); (3) called `GET /api/v1/health` and
+`GET /api/v1/status` over HTTP and confirmed live responses matching the
+README's documented behavior (`agent_runtime.connected: false`,
+`database.configured: false`, as expected for this phase); (4) confirmed no
+excluded content (`.idea/`, logs, Telegram recordings) present anywhere
+under `projects/voice_agent/`. All Acceptance Criteria met. One Lesson
+Learned (Windows `git archive`/`tar` line-ending risk) extracted into
+`PRINCIPLES.md` as P15. Status changed to `Implemented`.
 
 ---
 

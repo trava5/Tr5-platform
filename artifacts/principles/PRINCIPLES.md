@@ -135,10 +135,24 @@ signal entirely (in practice, one such directory outnumbered every real
 artifact combined). Discovery output SHALL exclude this kind of incidental
 content.
 
-The first implementation does this via a hardcoded exclusion list. That is
-accepted for v1.0 but flagged as provisional — see Backlog.
+The first implementation (v1.0) did this via a hardcoded exclusion list,
+flagged as provisional. A second real case (Contract 0002's testing
+produced gitignored `__pycache__/` that still showed up in
+`TR5_CURRENT_STATE.md`) confirmed the concern per P13. Resolved in
+Discovery Engine v1.1 (Contract 0001, Revision 1.2): exclusion is now
+`.gitignore`-aware; only `.git` remains hardcoded as a permanent baseline.
 
 ---
+
+### P15 — Verify byte-identity after any transfer, don't trust the copy mechanism.
+Status: Active
+
+Extracted from Contract 0002: `git archive | tar -x` silently normalized
+line endings on Windows even from a clean, correctly-pinned working tree.
+A plain file copy plus an explicit `diff` check against the source is safer
+for "transfer, unmodified" Contracts than any tool assumed to be
+transparent. Applies to every future transfer phase (voice agent Phases
+2–4 and any later project onboarding).
 
 ## Roles
 
@@ -198,10 +212,6 @@ requires it (see Backlog).
 These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
-- Whether the Discovery Engine's exclusion list (P14) should become
-  `.gitignore`-aware or configurable, instead of a hardcoded constant.
-  Raised by the Implementation Agent in Contract 0001's Lessons Learned;
-  deferred until a second real case confirms the need (per P13).
 - **`jarvis_cesky` governance migration.** This external project already runs
   its own working ADR/AGENTS.md system (17 accepted ADRs, proven in
   practice) — a parallel, more mature analog of Tr5's Contract/CLAUDE.md

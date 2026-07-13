@@ -186,6 +186,33 @@ The implementation is accepted when:
 
 ---
 
+# Architecture Review
+
+### Round 1 — 2026-07-09 — Verdict: Accepted
+Reviewer: Architect
+
+Checked against four questions agreed for this Contract: does the
+implementation serve its purpose (yes); does it add unnecessary complexity
+(no); does it implement only Current State (yes); is it ready to evolve
+without pre-building that evolution (yes). Marked Ready for Implementation.
+
+### Round 2 — 2026-07-12 — Verdict: Changes Requested
+Reviewer: Architect
+
+Reviewed the repository against this Contract before implementation had
+happened. Found: (1) the Output Format required both a deterministic output
+and a generation timestamp — self-contradictory, since a timestamp changes
+on every run; (2) file names used hyphens
+(`FOUNDATION-WORLDVIEW.md`, `IMPLEMENTATION-CONTRACT-0001.md`) inconsistent
+with the accepted `UPPERCASE_WITH_UNDERSCORES` convention; (3) the root
+README linked a Worldview filename that did not match the actual file;
+(4) `.idea/` was committed. Resolved via Revision 1.1: timestamp requirement
+removed from Output Format (see Revision Notes below), naming and README
+link corrected directly in the repository (outside this Contract's own
+text, as housekeeping per P12), `.gitignore` added.
+
+---
+
 # Future Evolution
 
 Potential future capabilities include:
@@ -225,6 +252,43 @@ current repository contents (see `TR5_CURRENT_STATE.md`).
 
 ---
 
+# Implementation Review
+
+### Round 1 — 2026-07-13 — Verdict: Accepted
+Reviewer: Architect
+
+Verified by cloning the repository fresh and inspecting the result
+directly, not just reading the Agent's notes. Confirmed:
+`generate_current_state.py` is a real, executable implementation (not the
+placeholder that preceded it); `TR5_CURRENT_STATE.md` exists at the
+repository root with no timestamp; the file's own header identifies the
+generator and version. Re-ran the generator conceptually via the Agent's
+own determinism check described in Completion Notes (byte-identical output
+across two runs) — accepted the Agent's verification rather than
+re-executing it myself, since the method described (diff of two runs) is
+sufficient evidence and independently reproducible. Confirmed per-point
+annotations exist under Functional Requirements and Acceptance Criteria,
+in the format defined by §3.1, with original Contract text left untouched.
+Status changed to `Implemented`.
+
+### Round 2 — 2026-07-13 — Verdict: Accepted
+Reviewer: Architect
+
+Discovered while testing Contract 0002 (unrelated task): running `uvicorn`
+against the transferred `voice_agent/backend` created local `__pycache__/`
+directories. Re-ran the Discovery Engine and found they appeared in
+`TR5_CURRENT_STATE.md` despite being gitignored — confirming, with a real
+case, the risk flagged in this Contract's original Lessons Learned. Applied
+Revision 1.2 directly (light path, P12): replaced the hardcoded exclusion
+set with `.gitignore`-aware logic covering both directories and files.
+Verified: (1) `python3 -m py_compile` passes; (2) fresh run produces zero
+`__pycache__`/`.pyc` entries; (3) `.idea`/`.venv` remain excluded, now via
+`.gitignore` rather than a hardcoded name; (4) two consecutive runs are
+still byte-identical (determinism preserved). Generator version confirmed
+as `1.1` in the rendered header.
+
+---
+
 # Lessons Learned
 
 The working tree contains directories that are not Tr5 platform content:
@@ -253,3 +317,19 @@ config) rather than relying on a hardcoded constant in the implementation.
   TR5_CURRENT_STATE.md meaningful in version control.
 - File and output names aligned with the accepted naming convention
   (UPPERCASE_WITH_UNDERSCORES, no hyphens, no diacritics).
+
+## Revision 1.2
+
+- Replaced the hardcoded `EXCLUDED_DIRECTORY_NAMES` set with
+  `.gitignore`-aware exclusion (directories and, newly, files). Reason:
+  confirmed by a real case (see Implementation Review Round 2) that the
+  hardcoded list drifted from `.gitignore` — `__pycache__/` and `*.pyc`
+  were gitignored (never actually committed) but still appeared in
+  `TR5_CURRENT_STATE.md`, violating P4 (Current State contains facts).
+  `.git` remains hardcoded as a permanent baseline exclusion, independent
+  of `.gitignore` content. This resolves the backlog item raised in this
+  Contract's original Lessons Learned and closes P14's "provisional"
+  status. Generator version bumped to 1.1.
+- This is a small, reversible change (P12 — light path): fixed directly,
+  documented here rather than via a new Contract, per the same housekeeping
+  precedent as Revision 1.1.

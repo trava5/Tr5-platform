@@ -108,8 +108,10 @@ Status: Draft | Accepted | Implemented | Rejected
 ## Functional Requirements   (SHALL)
 ## Out of Scope               (SHALL NOT)
 ## Acceptance Criteria
+## Architecture Review        (pre-implementation gate — see §3.2)
 ## Future Evolution           (explicitly excluded, not forgotten)
 ## Completion Notes            (filled after implementation)
+## Implementation Review      (post-implementation verification — see §3.2)
 ## Lessons Learned             (filled after implementation)
 ```
 
@@ -138,6 +140,43 @@ Requirements at once) — it does not need to be repeated line-by-line when
 one note honestly covers the group. Detailed reasoning belongs in
 `Completion Notes` / `Lessons Learned`; the inline annotation is a pointer,
 not the full explanation.
+
+### 3.2 Review Format (Accepted — extracted from Contract 0002)
+
+Reviews live inside the Contract, in their own named sections
+(`## Architecture Review`, `## Implementation Review`), never in a separate
+file — the Contract is the single, complete history of one decision from
+intent to verification.
+
+Reviews are append-only, same rule as §3.1: a new round is added, an old
+round is never edited or removed. Each round is its own subsection, so it
+is unambiguous at a glance which section it belongs to and which round it
+is:
+
+```markdown
+## Architecture Review
+
+### Round 1 — YYYY-MM-DD — Verdict: Accepted | Rejected | Changes Requested
+Reviewer: Architect
+
+<findings — what was checked, against what, what was found>
+
+## Implementation Review
+
+### Round 1 — YYYY-MM-DD — Verdict: Accepted | Changes Requested
+Reviewer: Architect
+
+<findings — what was verified and how (e.g. commands run, output seen),
+not just a restatement of the Acceptance Criteria>
+```
+
+`Architecture Review` judges the Contract itself against
+`FOUNDATIONAL_WORLDVIEW.md` and `PRINCIPLES.md`, before an Implementation
+Agent ever sees it. `Implementation Review` judges the delivered result
+against this Contract's own Acceptance Criteria, after implementation.
+They are never merged into one section — they answer different questions,
+at different times, and a Contract may pass one and still need rework on
+the other.
 
 ---
 

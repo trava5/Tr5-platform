@@ -4,18 +4,57 @@ Scans the repository, classifies artifacts, and generates
 TR5_CURRENT_STATE.md. See tools/discovery_engine/README.md.
 """
 
+import fnmatch
 import os
 import sys
 from pathlib import Path
 
 GENERATOR_NAME = "Tr5 Discovery Engine"
-GENERATOR_VERSION = "1.0"
+GENERATOR_VERSION = "1.1"
 OUTPUT_FILE_NAME = "TR5_CURRENT_STATE.md"
 
-# Directories that are not Tr5 platform content (VCS internals, virtual
-# environment, IDE state). Excluded so the Current State document reflects
-# the platform, not incidental local tooling.
-EXCLUDED_DIRECTORY_NAMES = {".git", ".venv", ".idea"}
+# Always excluded regardless of .gitignore: fundamental VCS internals, not a
+# matter of project-specific ignore rules.
+BASELINE_EXCLUDED_DIRECTORY_NAMES = {".git"}
+
+
+def _load_gitignore_patterns(repository_root):
+    """Read simple, non-negated .gitignore patterns.
+
+    Supports exact directory names (lines ending in "/") and glob patterns
+    for files (e.g. "*.pyc", ".DS_Store"). Negation ("!") and nested
+    .gitignore files are not supported in v1.1 — not present in the
+    platform's current .gitignore, so not implemented ahead of need (P2).
+    """
+    gitignore_path = repository_root / ".gitignore"
+    directory_patterns = set()
+    file_patterns = set()
+
+    if not gitignore_path.exists():
+        return directory_patterns, file_patterns
+
+    for raw_line in gitignore_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or line.startswith("!"):
+            continue
+        if line.endswith("/"):
+            directory_patterns.add(line.rstrip("/"))
+        else:
+            file_patterns.add(line)
+
+    return directory_patterns, file_patterns
+
+
+def _is_excluded_directory(name, gitignore_directory_patterns):
+    if name in BASELINE_EXCLUDED_DIRECTORY_NAMES:
+        return True
+    return any(
+        fnmatch.fnmatch(name, pattern) for pattern in gitignore_directory_patterns
+    )
+
+
+def _is_excluded_file(name, gitignore_file_patterns):
+    return any(fnmatch.fnmatch(name, pattern) for pattern in gitignore_file_patterns)
 
 
 def classify_artifact(path):
@@ -36,14 +75,21 @@ def classify_artifact(path):
 
 def scan_repository(repository_root):
     artifacts = []
+    directory_patterns, file_patterns = _load_gitignore_patterns(repository_root)
 
     for dirpath, dirnames, filenames in os.walk(repository_root):
         dirnames[:] = sorted(
-            name for name in dirnames if name not in EXCLUDED_DIRECTORY_NAMES
+            name
+            for name in dirnames
+            if not _is_excluded_directory(name, directory_patterns)
         )
         current_dir = Path(dirpath)
 
-        for name in dirnames + sorted(filenames):
+        visible_filenames = sorted(
+            name for name in filenames if not _is_excluded_file(name, file_patterns)
+        )
+
+        for name in dirnames + visible_filenames:
             full_path = current_dir / name
             artifacts.append(
                 {
