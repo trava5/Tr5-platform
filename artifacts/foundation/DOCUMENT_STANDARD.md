@@ -1,6 +1,6 @@
 # Tr5 Document Standard
 
-Status: Draft v0.1 (pending review against actual repository state)
+Status: Accepted v1.1
 
 ---
 
@@ -27,7 +27,8 @@ Every Tr5-based repository SHALL follow this top-level shape:
 │
 ├── artifacts/
 │   ├── foundation/
-│   │   └── FOUNDATIONAL_WORLDVIEW.md
+│   │   ├── FOUNDATIONAL_WORLDVIEW.md
+│   │   └── DOCUMENT_STANDARD.md
 │   │
 │   ├── implementation_contracts/
 │   │   └── IMPLEMENTATION_CONTRACT_XXXX.md
@@ -40,8 +41,18 @@ Every Tr5-based repository SHALL follow this top-level shape:
 │       ├── README.md
 │       └── <source_files>
 │
-└── src/
+└── projects/
+    └── <project_name>/
+        ├── README.md
+        └── <application source>
 ```
+
+Note (Accepted — Contract 0002): the earlier single `src/` directory is
+replaced by `projects/<project_name>/`. Tr5 is a platform hosting several
+independent applications (voice agent, hockey video analysis, Home Assistant
+integration, ...), each with its own identity and lifecycle — not one
+monolithic `src/` tree. Every entry under `projects/` follows the same
+internal conventions as the rest of the platform (naming, README standard).
 
 Rules:
 
