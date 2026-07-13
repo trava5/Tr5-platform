@@ -2,6 +2,9 @@
 
 Status: Accepted
 
+> Status: Implemented — see Completion Notes and per-section annotations
+> below.
+
 ---
 
 # Title
@@ -83,6 +86,8 @@ from-scratch redesign happens — not here.
 - `projects/voice_agent/.env.example` — scoped to backend-relevant settings
   only.
 
+> Status: Done — all four outputs created as specified.
+
 ---
 
 # Functional Requirements
@@ -118,6 +123,30 @@ The implementation SHALL:
   `JARVIS_BACKEND_APP_NAME`, `DATABASE_URL`) — renaming is explicitly out
   of scope for this Contract.
 
+> Status: Done — copied `backend/` from `jarvis-windows` (local clone of
+> `jarvis_cesky`), whose HEAD at transfer time was exactly commit
+> `5601ad6c6f4ca55673bef358380ad8cb2f31be3e` with a clean working tree, so
+> the copy is byte-for-byte identical to the source commit (verified with
+> `diff -rq`, excluding `__pycache__`). `client.py` and `realtime_client.py`
+> included per requirement. `requirements.txt` built from actual imports:
+> `fastapi, uvicorn, pydantic, websockets, sqlalchemy, asyncpg, requests`.
+> `pydantic` was added beyond the Contract's "expected" list because
+> `schemas.py` imports it directly (`from pydantic import BaseModel,
+> Field`) — a deviation from the illustrative list, not from the
+> instruction, which was to verify against actual imports. `asyncpg` is not
+> imported by name in Python but is required as the async driver behind
+> `postgresql+asyncpg://` URLs in `backend/db/session.py`, consistent with
+> the Contract's own expected list. `.env.example` contains exactly the
+> nine variables read by `backend/config.py`
+> (`JARVIS_BACKEND_APP_NAME/HOST/PORT/RELOAD`, `DATABASE_URL/NAME/USER/
+> PASS/SCHEMA`); variables read only by `client.py`/`realtime_client.py`
+> (e.g. `JARVIS_BACKEND_BASE_URL`, `JARVIS_BACKEND_REALTIME_ENABLED`) were
+> deliberately excluded per the Contract's explicit scoping to what
+> `config.py` reads. Verified boot: fresh venv from the new
+> `requirements.txt`, `uvicorn backend.app:app`, `GET /api/v1/status` and
+> `GET /api/v1/health` both returned HTTP 200 with the in-memory fallback
+> active (no `DATABASE_URL` set).
+
 ---
 
 # Out of Scope
@@ -138,6 +167,9 @@ Version 1.0 of this transfer SHALL NOT:
 - Implement the `profiles/` loader (Phase 3) or rewrite the live agent
   runtime (Phase 4).
 
+> Status: Done — none of these were touched. `jarvis-windows` (the source
+> clone) was not modified.
+
 ---
 
 # Acceptance Criteria
@@ -157,6 +189,18 @@ The implementation is accepted when:
 - No excluded content (per Out of Scope) is present anywhere under
   `projects/voice_agent/`.
 - The Contract is annotated in place per DOCUMENT_STANDARD §3.1.
+
+> Status: Done — all Acceptance Criteria verified:
+> `projects/voice_agent/backend/` is byte-for-byte equivalent to the source
+> commit (`diff -rq`, no missing/added files); the service booted cleanly
+> via `uvicorn` in a fresh venv built only from the new `requirements.txt`;
+> `GET /api/v1/status` returned HTTP 200; all directory/file names are
+> `lowercase_with_underscores` with no diacritics; `README.md` and
+> `.env.example` exist and match the defined scope; no excluded content
+> (Telegram recordings, `.idea/`, logs, `actions/`, `features/`, `profiles/`,
+> `memory/`, `main.py`, `core/prompt.txt`) is present anywhere under
+> `projects/voice_agent/`; this annotation itself satisfies the last
+> criterion.
 
 ---
 
@@ -179,10 +223,37 @@ The implementation is accepted when:
 
 # Completion Notes
 
-(To be completed after implementation.)
+Implemented as specified. The source `jarvis_cesky` repository was accessed
+via a pre-existing local clone at `PycharmProjects/jarvis-windows` rather
+than a fresh GitHub clone; its `origin` remote confirmed it is that
+repository, and its HEAD matched the Contract's pinned commit exactly with
+a clean working tree, so no fetch was needed. `backend/` was copied with a
+direct file copy (not `git archive` + `tar`, which was tried first and
+introduced CRLF line-ending changes on Windows) and verified byte-identical
+with `diff -rq`. `requirements.txt` was derived by grepping all `import`/
+`from` statements across the package; this added one package
+(`pydantic`) beyond the Contract's illustrative "expected" list, which is a
+result of following the Contract's own instruction to verify against
+actual imports rather than a deviation from it. `.env.example` was scoped
+strictly to `backend/config.py`'s own reads, per the Contract's explicit
+wording, even though `client.py`/`realtime_client.py` (also transferred)
+read several additional variables — those are reference-client concerns,
+not this backend service's, and are out of scope here. Verification used a
+disposable venv and a non-default port, both removed after the boot/status
+check; no database was configured, so the service ran on the in-memory
+fallback, which is the expected standalone behavior per `storage.py`.
 
 ---
 
 # Lessons Learned
 
-(To be completed after implementation.)
+- `git archive | tar -x` is not a safe way to transfer files byte-for-byte
+  on Windows/Git Bash — it can silently normalize line endings even when
+  the source working tree does not. A plain file copy from a clean,
+  correctly-pinned working tree is simpler and safer for "transfer,
+  unmodified" Contracts like this one.
+- A Contract's illustrative list of expected dependencies (here,
+  `requirements.txt`) should still be verified against actual imports
+  rather than trusted as exhaustive — this Contract already anticipated
+  that by saying "verify... rather than copying", and that instruction
+  caught one real gap (`pydantic`).
