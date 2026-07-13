@@ -1,6 +1,6 @@
 # Tr5 Document Standard
 
-Status: Accepted v1.0
+Status: Draft v0.1 (pending review against actual repository state)
 
 ---
 
@@ -27,8 +27,7 @@ Every Tr5-based repository SHALL follow this top-level shape:
 │
 ├── artifacts/
 │   ├── foundation/
-│   │   ├── FOUNDATIONAL_WORLDVIEW.md
-│   │   └── DOCUMENT_STANDARD.md
+│   │   └── FOUNDATIONAL_WORLDVIEW.md
 │   │
 │   ├── implementation_contracts/
 │   │   └── IMPLEMENTATION_CONTRACT_XXXX.md
@@ -108,6 +107,26 @@ A Contract separates two concerns, always:
 - **Why** — belongs to humans, is the architectural justification.
 - **What** — belongs to implementation, is the precise, testable
   specification.
+
+### 3.1 Annotation Format (Accepted — extracted from Contract 0001)
+
+Contracts are permanent history. Once a point's original text is written,
+it is never altered, deleted, or reworded — an Implementation Agent may
+only INSERT annotation lines after a requirement or group of related
+requirements, never inside their original wording.
+
+Format:
+
+```markdown
+> Status: Done — one-line note, or a pointer to Completion Notes for detail
+```
+
+Other valid status values: `Blocked`, `Deviation`. An annotation may cover
+a single point or a tightly related group of points (e.g. all Functional
+Requirements at once) — it does not need to be repeated line-by-line when
+one note honestly covers the group. Detailed reasoning belongs in
+`Completion Notes` / `Lessons Learned`; the inline annotation is a pointer,
+not the full explanation.
 
 ---
 

@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0001
 
-Status: Accepted (Revision 1.1 — see Revision Notes)
+Status: Implemented (Revision 1.1)
 
 ---
 

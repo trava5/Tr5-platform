@@ -1,6 +1,6 @@
 # Tr5 Principles
 
-Status: Living Document — v1.0 (Accepted)
+Status: Living Document — Draft v0.1 (pending review against actual repository state)
 
 ---
 
@@ -8,7 +8,7 @@ Status: Living Document — v1.0 (Accepted)
 
 This document collects the operating principles of the Tr5 Platform.
 
-Unlike `FOUNDATIONAL_WORLDVIEW.md`, which is stable and changes rarely, this
+Unlike `FOUNDATIONAL-WORLDVIEW.md`, which is stable and changes rarely, this
 document is expected to grow and be revised as the platform accumulates
 experience.
 
@@ -125,6 +125,19 @@ A convention earns its place in the platform by proving itself inside a real
 project first. The constitutional layer stays minimal until reality demands
 more.
 
+### P14 — Discovery reflects platform content, not incidental local tooling.
+Status: Active
+
+Extracted from the first Discovery Engine run (Contract 0001): a literal
+filesystem scan surfaces VCS internals, virtual environments, and IDE state
+— none of which represent the platform itself, and which can drown out the
+signal entirely (in practice, one such directory outnumbered every real
+artifact combined). Discovery output SHALL exclude this kind of incidental
+content.
+
+The first implementation does this via a hardcoded exclusion list. That is
+accepted for v1.0 but flagged as provisional — see Backlog.
+
 ---
 
 ## Roles
@@ -185,6 +198,25 @@ requires it (see Backlog).
 These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
+- Whether the Discovery Engine's exclusion list (P14) should become
+  `.gitignore`-aware or configurable, instead of a hardcoded constant.
+  Raised by the Implementation Agent in Contract 0001's Lessons Learned;
+  deferred until a second real case confirms the need (per P13).
+- **`jarvis_cesky` governance migration.** This external project already runs
+  its own working ADR/AGENTS.md system (17 accepted ADRs, proven in
+  practice) — a parallel, more mature analog of Tr5's Contract/CLAUDE.md
+  system. Decision: migrate it to Tr5's system gradually, once its current
+  migration (`MIG-006`/`MIG-007`, backend/realtime work) reaches a stable
+  point. Do not force this now — it would compete with in-flight work. When
+  resumed: (a) extract proven patterns from its ADRs into PRINCIPLES.md
+  first per P13 (e.g. actions/features/profiles separation, numbered
+  subdirectories, shared-backend-multi-client architecture), (b) only then
+  introduce Tr5 Contracts for new work in that repo, (c) never rewrite its
+  existing ADR history — it is append-only, same principle as our own.
+  Known, still-open security items in that repo (independent of governance
+  question, can be fixed anytime): committed Telegram voice recordings
+  (`.oga` files) in `features/002_telegram_bridge/konverzace/`, missing
+  `.idea/` and `*.log` entries in `.gitignore`.
 - Format and scope of the future `implementation_packages/` (`.json`)
   representation.
 - Whether Contracts eventually need a richer lifecycle folder structure
