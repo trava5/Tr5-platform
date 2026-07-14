@@ -175,6 +175,48 @@ verifying its actual extent is part of doing the work.
 
 ---
 
+### P17 — Click is the universal interface. Voice is an opt-in layer above it.
+Status: Active
+
+Every application on the platform SHALL have a "click" interface — this is
+the mandatory, universal control surface. Voice is a second, optional layer
+above select applications/functions, not a parallel universal interface.
+`platform_shell` (see Backlog) is the single control surface every project
+connects to; it is designed around click as the primary case, with voice
+support added where it makes sense, not derived from voice_agent's needs.
+
+Every project's backend SHALL follow the same shared template/conventions
+(per DOCUMENT_STANDARD), so `platform_shell` can talk to any of them
+uniformly. Each project's frontend surface may differ in specifics (what
+can be clicked, what it does), but the shape of the connection — how
+`platform_shell` discovers and talks to a project — should not.
+
+Practical consequence for `platform_shell`'s eventual design: `voice_agent`
+is used as one real test case to validate the connection standard against
+(per P13 — extract from a working system), not as the template the
+standard is copied from. Building `voice_agent` first does not mean voice
+comes first architecturally.
+
+---
+
+### P18 — Not every entity is a platform Artifact. Some are implementation detail inside one.
+Status: Active
+
+`FOUNDATIONAL_WORLDVIEW.md` states every entity is represented as an
+Artifact in its current State. This does not mean every function, module,
+or agentic action gets its own platform-level lifecycle (Contract, README,
+Architecture/Implementation Review). A platform Artifact is something with
+its own identity, lifecycle, and review history at the platform level —
+a Contract, a foundational document, a project (`voice_agent`,
+`platform_shell`, ...). An individual action like `get_weather` or
+`add_calendar_event` is an implementation detail inside the Artifact that
+Contract 0003 created (`voice_agent`'s `actions/`) — it doesn't need its
+own Artifact status. Treating every internal detail as a full Artifact
+would violate P12 (process weight matches decision weight) by ceremony
+alone.
+
+---
+
 ## Roles
 
 | Role | Responsibility |
@@ -234,17 +276,22 @@ These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
 - **`projects/platform_shell/` (future direction, discussed not yet
-  scheduled).** Tr5 needs a universal entry point for the whole platform:
-  a window offering both a "click" input (mandatory for every future
-  application) and voice input (opt-in per application). Preliminary
-  agreement: this is a separate project, not part of `voice_agent` —
-  `voice_agent` is a capability provider, `platform_shell` is the control
-  surface, and every future project (hockey stats, Home Assistant, ...)
-  should connect to it the same way, not just voice-capable ones. Not
-  scheduled yet — finish the voice agent transfer first. When scheduled,
-  this is also where the deferred "does this app get voice/click control,
-  and where is that decision recorded" question gets resolved for real,
-  against a concrete second case, not just voice_agent's.
+  scheduled).** Tr5 needs a universal entry point for the whole platform —
+  see P17 for the accepted design stance (click is the mandatory, primary
+  interface; voice is an opt-in layer above select functions, not a
+  parallel universal one). This is a separate project, not part of
+  `voice_agent` — `voice_agent` is a capability provider, `platform_shell`
+  is the control surface. Every project's backend follows the same shared
+  template so `platform_shell` can connect uniformly; frontend specifics
+  differ per project. Not scheduled yet — Phase 4 of the voice agent
+  transfer finishes first, so this work doesn't interrupt an in-flight
+  task. Explicit risk to guard against when this is scheduled: do not
+  design the connection standard by copying `voice_agent`'s shape —
+  `voice_agent` is one validating test case (per P13), and being built
+  first must not make it the template. Expect substantial discussion when
+  this starts. This is also where the deferred "does this app get
+  voice/click control, and where is that decision recorded" question gets
+  resolved for real.
 - **`jarvis_cesky` governance migration.** This external project already runs
   its own working ADR/AGENTS.md system (17 accepted ADRs, proven in
   practice) — a parallel, more mature analog of Tr5's Contract/CLAUDE.md

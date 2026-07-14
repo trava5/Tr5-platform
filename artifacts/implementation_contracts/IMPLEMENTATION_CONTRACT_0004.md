@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0004
 
-Status: Accepted
+Status: Implemented
 
 > Status: Implemented — see Completion Notes and per-section annotations
 > below.
@@ -288,6 +288,26 @@ only listed reference for prompt content was a non-functional placeholder).
 Both are called out explicitly rather than folded in silently, consistent
 with how Contracts 0002 and 0003 handled their own minor disclosed
 deviations.
+
+### Round 1 — 2026-07-14 — Verdict: Accepted
+Reviewer: Architect
+
+Verified with actual test calls, not by reading the code and assuming
+correctness: (1) `list_available_profiles` against the real delivered
+`profiles/` returns exactly `["000_base"]`; (2) `load_profile("000_base",
+...)` against the real `TOOL_CATALOG` succeeds and resolves all five tools
+by spec, not just by name; (3) built two deliberately broken profiles under
+a `tempfile` directory (never inside the repository) — one with an unknown
+tool name appended to `actions.json`, one with `prompt.txt` deleted — and
+confirmed each raises the specific exception type the Contract requires
+(`UnknownToolError`, `ProfileFilesMissingError`), not a generic or wrong
+exception. Read `prompt.txt` directly: confirmed it references only the
+five transferred tools and does not mention any tool from `jarvis_cesky`'s
+wider catalog (memory, WhatsApp, reminders, YouTube, screen analysis) that
+was correctly excluded from this profile's scope. The `core/prompt.txt`
+substitution is endorsed — the Contract's own Inputs section did point to a
+placeholder, someone had to decide, and the decision was disclosed rather
+than hidden. Status changed to `Implemented`.
 
 ---
 
