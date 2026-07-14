@@ -154,6 +154,27 @@ for "transfer, unmodified" Contracts than any tool assumed to be
 transparent. Applies to every future transfer phase (voice agent Phases
 2–4 and any later project onboarding).
 
+Confirmed a second time in Contract 0003 with no new exceptions — this is
+now the standard transfer method, not a per-Contract decision.
+
+---
+
+### P16 — A named risk applies to its pattern, not to its filename.
+Status: Active
+
+Extracted from Contract 0003: the Contract explicitly named
+`calendar.py`'s path-resolution risk (`BASE_DIR` computed from file
+nesting depth) but not `bridge.py`'s, even though both share the identical
+pattern. The Implementation Agent verified both anyway and stated why. This
+was correct, and is the expected behavior, not scope creep: per P11 an
+agent does not invent new requirements, but recognizing that a stated risk
+is a property of a code pattern — and applies wherever that pattern
+recurs — is implementation, not architecture. A Contract cannot always
+enumerate every file a given risk touches; it states the risk, and
+verifying its actual extent is part of doing the work.
+
+---
+
 ## Roles
 
 | Role | Responsibility |

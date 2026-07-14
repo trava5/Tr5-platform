@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0003
 
-Status: Accepted
+Status: Implemented
 
 > Status: Implemented — see Completion Notes and per-section annotations
 > below.
@@ -306,6 +306,30 @@ also covers `.env` (Outputs annotation), and `bridge.py`'s `BASE_DIR` was
 verified alongside `calendar.py`'s even though only the latter was named
 (Functional Requirements annotation). Both follow directly from the
 Contract's own stated Intent/Purpose rather than introducing new scope.
+
+### Round 1 — 2026-07-13 — Verdict: Accepted
+Reviewer: Architect
+
+Verified independently, not by trusting the Agent's self-review alone:
+(1) `diff -rq` of `actions/` and `features/002_telegram_bridge/` against a
+fresh clone of the pinned source commit — byte-identical, with the only
+differences being the ten flat legacy files correctly absent from Tr5;
+(2) confirmed `konverzace/` and all ten out-of-scope flat files are absent
+anywhere under `projects/voice_agent/`; (3) independently recomputed
+`calendar.py`'s `BASE_DIR` — resolves to `projects/voice_agent/`, matching
+the Agent's claim rather than just accepting it stated; (4) built a fresh
+venv from `requirements.txt` and actually imported `TOOL_CATALOG`,
+resolved all five registered tool functions via `importlib` (the catalog
+has 5 keys, not 3 — `calendar.py` exports three separate functions under
+one module, correctly reflected in the catalog), and imported
+`features.002_telegram_bridge.bridge` and `.backend_client` successfully;
+(5) confirmed `.env.example` covers every `os.getenv`/`os.environ.get` call
+found by an independent grep across the transferred files, including
+`JARVIS_TIMEZONE` which the Contract's own Functional Requirements text
+happened to list. The Agent's self-initiated extension of the `BASE_DIR`
+check to `bridge.py` was correct and is endorsed — the same class of risk,
+correctly generalized rather than narrowly interpreted from the Contract's
+literal wording. Status changed to `Implemented`.
 
 ---
 
