@@ -32,6 +32,13 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 - `features/002_telegram_bridge/` provides a Telegram Bot API bridge
   (long polling, text and voice messages, chat allowlisting) that talks to
   this backend's `/api/v1/messages` endpoint via `backend_client.py`.
+- `profiles/` provides a static profile loader (`profile_loader.py`) with
+  `load_profile()` and `list_available_profiles()`. One profile,
+  `000_base`, is delivered: a general-purpose assistant prompt with all
+  five current `actions/tool_catalog.py` tools enabled and no features
+  enabled by default. The loader validates every profile's declared tools
+  against the real tool catalog and raises a specific exception on an
+  unknown tool name or a missing profile file.
 
 ## Current limitations
 
@@ -45,14 +52,15 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   are not transferred — both are still coupled to the source project's
   `main.py`/`app_config.py` and are deferred to Phase 4, where they will be
   re-evaluated rather than transferred as-is.
-- No `profiles/` or `memory/` (desktop) layers — those are later transfer
-  phases.
+- `profile_loader.py` is available and verified in isolation, but nothing
+  calls it yet — it is not wired into `backend/services/agent_runtime.py`
+  or any live runtime. That wiring is Phase 4.
+- No `memory/` (desktop) layer — that is a later transfer phase.
 - Environment variable names are unchanged from the source project and are
   not yet renamed to a Tr5-wide convention.
 
 ## Planned evolution
 
-- Phase 3: implement the `profiles/` loader as new work.
 - Phase 4: design and implement the live agent runtime.
 - Platform-level review: define how any Tr5 application connects to the
   voice agent.

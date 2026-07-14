@@ -1,0 +1,9 @@
+{
+  "enabled_tools": [
+    "get_weather",
+    "get_calendar_events",
+    "add_calendar_event",
+    "delete_calendar_event",
+    "open_app"
+  ]
+}

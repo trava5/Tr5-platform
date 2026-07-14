@@ -233,6 +233,18 @@ requires it (see Backlog).
 These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
+- **`projects/platform_shell/` (future direction, discussed not yet
+  scheduled).** Tr5 needs a universal entry point for the whole platform:
+  a window offering both a "click" input (mandatory for every future
+  application) and voice input (opt-in per application). Preliminary
+  agreement: this is a separate project, not part of `voice_agent` —
+  `voice_agent` is a capability provider, `platform_shell` is the control
+  surface, and every future project (hockey stats, Home Assistant, ...)
+  should connect to it the same way, not just voice-capable ones. Not
+  scheduled yet — finish the voice agent transfer first. When scheduled,
+  this is also where the deferred "does this app get voice/click control,
+  and where is that decision recorded" question gets resolved for real,
+  against a concrete second case, not just voice_agent's.
 - **`jarvis_cesky` governance migration.** This external project already runs
   its own working ADR/AGENTS.md system (17 accepted ADRs, proven in
   practice) — a parallel, more mature analog of Tr5's Contract/CLAUDE.md
