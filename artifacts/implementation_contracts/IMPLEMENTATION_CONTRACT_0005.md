@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0005
 
-Status: Accepted
+Status: Implemented
 
 ---
 
@@ -497,7 +497,33 @@ project's existing dict-shaped tool schemas directly, coercing into
 
 # Implementation Review
 
-(To be completed after implementation.)
+### Round 1 — 2026-07-20 — Verdict: Accepted
+Reviewer: Architect
+
+Verified independently, not by trusting Completion Notes alone: (1) `grep`
+across `gemini_chat_handler.py` confirms zero references to
+`aio.live.connect`, `LiveConnectConfig`, or `response_modalities` — the
+Live API surface is genuinely absent, not just renamed; (2) built a fresh
+venv from the delivered `requirements.txt`, started the backend with
+`GEMINI_API_KEY` unset, and confirmed `GET /api/v1/status` is
+byte-for-byte identical to Contract 0002's original smoke test output —
+the conditional wiring truly changes nothing when the key is absent;
+(3) called `build_generation_config` against the real `000_base` profile
+and confirmed the five declared tool names exactly match
+`profile.tools.keys()`; (4) called `execute_tool` with both an unknown
+tool name and a real tool given a wrong keyword argument — both returned
+descriptive error dicts, no unhandled exception in either case;
+(5) independently wrote and ran my own mocked function-calling round trip
+(not the Agent's — a separate one, using `AsyncMock` with a two-response
+`side_effect`) and confirmed: exactly two `generate_content` calls, the
+second call's `contents` has the expected three-turn shape (user → model
+function-call → user function-response), and the final returned text
+matches the mocked second response. The disclosed `async`/`aio` deviation
+from the Contract's sync-suggesting wording is endorsed — correctly
+reasoned against `AgentRuntime`'s own pre-existing `Awaitable`-tolerant
+`LiveMessageHandler` contract from Contract 0002, and against the concrete
+risk of blocking FastAPI's event loop, not against convenience. Status
+changed to `Implemented`.
 
 ---
 
