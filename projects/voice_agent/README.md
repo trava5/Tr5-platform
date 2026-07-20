@@ -14,7 +14,14 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   PostgreSQL configuration health.
 - `WS /api/v1/realtime` streams runtime-state, message, and (reserved)
   audio events.
-- `POST /api/v1/messages` accepts the stable agent message contract.
+- `POST /api/v1/messages` accepts the stable agent message contract. When
+  `GEMINI_API_KEY` is set, it produces real Gemini-backed responses (text
+  in, text out, one profile, single-turn, including real tool execution)
+  via plain `generate_content` with function calling
+  (`backend/services/gemini_chat_handler.py`) — not the Live API, which is
+  reserved for Phase 4b's real-time voice use case. Without
+  `GEMINI_API_KEY`, the endpoint still responds with `runtime_unavailable`,
+  unchanged from before.
 - `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` expose
   stored conversation sessions.
 - Short-term memory (`/api/v1/memory/short-term`) and long-term decision
@@ -42,25 +49,25 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 
 ## Current limitations
 
-- No connected live agent runtime: `POST /api/v1/messages` responds with
-  `runtime_unavailable` until Phase 4 implements the live runtime.
-  `tool_catalog.py` exists and is importable, and its three actions run
-  independently, but nothing calls them yet — no agent dispatches tool
-  calls into `actions/` until Phase 4.
+- No memory across messages, no audio, no multi-turn conversational
+  continuity, and only one profile (`000_base`). Each message opens a
+  fresh `generate_content` call; nothing is persisted or remembered
+  between messages. Real-time voice (Gemini Live API) is Phase 4b's
+  concern, not implemented here.
 - Only the numbered, cataloged `actions/` are present. The ten flat,
   uncataloged legacy action modules and `features/001_elevenlabs_voice/`
   are not transferred — both are still coupled to the source project's
   `main.py`/`app_config.py` and are deferred to Phase 4, where they will be
   re-evaluated rather than transferred as-is.
-- `profile_loader.py` is available and verified in isolation, but nothing
-  calls it yet — it is not wired into `backend/services/agent_runtime.py`
-  or any live runtime. That wiring is Phase 4.
 - No `memory/` (desktop) layer — that is a later transfer phase.
 - Environment variable names are unchanged from the source project and are
   not yet renamed to a Tr5-wide convention.
 
 ## Planned evolution
 
-- Phase 4: design and implement the live agent runtime.
+- Phase 4a-bis: wire memory persistence into `gemini_chat_handler.py`.
+- Phase 4b: Gemini Live API for real-time voice input/output, alongside
+  (not replacing) `gemini_chat_handler.py`.
+- Phase 4c: enable and verify `features/002_telegram_bridge` end-to-end.
 - Platform-level review: define how any Tr5 application connects to the
   voice agent.
