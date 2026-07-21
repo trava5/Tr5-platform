@@ -331,6 +331,25 @@ check to `bridge.py` was correct and is endorsed — the same class of risk,
 correctly generalized rather than narrowly interpreted from the Contract's
 literal wording. Status changed to `Implemented`.
 
+### Round 2 — 2026-07-20 — Verdict: Changes Requested (→ Revision 1.1)
+Reviewer: Architect
+
+Prompted by the person's live end-to-end test under Contract 0005
+(a real message asking to create a calendar event): `add_calendar_event`
+failed at call time with "Missing libraries for Google Calendar API."
+Traced the cause: `import googleapiclient.discovery` and related Google
+auth imports in `calendar.py` are inside a function body, not at module
+top level — my Round 1 review's dependency verification (and the
+Contract's own Functional Requirements text) only checked top-level
+imports, and both missed this. `TOOL_CATALOG` import succeeding in Round
+1's test was real but insufficient evidence — it exercises module load,
+not the deferred-import code path a live call actually reaches. Fixed
+directly (Revision 1.1): three missing packages added to
+`requirements.txt`, matching `jarvis_cesky`'s own `requirements.txt`
+exactly for these three. Extracted as P19 in PRINCIPLES.md — process gap,
+not an isolated mistake, worth naming so it isn't repeated in Phase 4b or
+future project onboarding.
+
 ---
 
 # Lessons Learned
@@ -344,3 +363,22 @@ literal wording. Status changed to `Implemented`.
   code pattern (`bridge.py`'s `BASE_DIR`), it's worth verifying both even
   though only one was named — the risk, not the filename, is what the
   Contract actually cares about.
+
+---
+
+# Revision Notes
+
+## Revision 1.1 (2026-07-20)
+
+- Added `google-api-python-client`, `google-auth-httplib2`,
+  `google-auth-oauthlib` to `projects/voice_agent/requirements.txt`.
+  Reason: found via live end-to-end testing under Contract 0005 —
+  `calendar.py` imports these inside a function body (deferred import),
+  not at module top level, so this Contract's original dependency check
+  (which searched only top-level `import`/`from` lines) missed them. The
+  module imported successfully and passed all of this Contract's original
+  Acceptance Criteria; the gap only surfaced when a real call attempted to
+  actually use the Google Calendar API. See PRINCIPLES.md P19.
+- Small, reversible fix (P12 — light path): corrected directly, documented
+  here rather than via a new Contract, consistent with Contract 0001's own
+  precedent for this kind of housekeeping revision.

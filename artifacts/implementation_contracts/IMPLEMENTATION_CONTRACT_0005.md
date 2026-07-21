@@ -547,6 +547,15 @@ changed to `Implemented`.
   checking early when a Contract's Acceptance Criteria require actual test
   calls (not just code inspection), since "verify structurally" still
   needs a real interpreter with the real dependencies importable.
+- When extracting design from a reference implementation (P13), enumerate
+  *everything* it injects into the model's context, not just the obvious
+  pieces (prompt, tools). This Contract's original design carried over
+  `main.py`'s tool declarations and system prompt but missed its
+  `[AKTUÁLNÍ ČAS]` current-time injection entirely — invisible in code
+  review (nothing was wrong, something was simply absent), and only
+  surfaced through a live test that happened to ask for a relative date.
+  A useful check for future reference-informed Contracts: diff the
+  reference's context-building function's *inputs*, not just its outputs.
 
 ---
 
@@ -571,3 +580,40 @@ changed to `Implemented`.
   text-based channels (e.g. the Telegram bridge) even after Phase 4b adds
   Live API for voice — the two are not sequential steps toward the same
   end state, they serve different channel types side by side.
+
+## Revision 1.2 (2026-07-20)
+
+- Added `_current_time_context()` to `gemini_chat_handler.py`, prepended
+  to `system_instruction` in `build_generation_config`. Reason: found via
+  the person's live testing — the model had no way to resolve relative
+  time ("zítra v 15:00") to a real ISO datetime for `add_calendar_event`,
+  since nothing told it the current date/time. This was an omission in
+  this Contract's original scope, not an Implementation Agent error —
+  `jarvis_cesky`'s `main.py` already solved this (`_build_config`'s
+  `[AKTUÁLNÍ ČAS]` block, computed once per Live connection); this
+  Contract's design never carried that pattern over. Fixed by computing
+  the time context fresh on every call (`build_generation_config` is
+  already invoked per-message inside `handle_message`, so no further
+  restructuring was needed — the existing per-message design absorbed the
+  fix cleanly). Uses `JARVIS_TIMEZONE` (already an established env var
+  from Contract 0003), defaulting to `Europe/Prague`.
+- Small, reversible fix (P12 — light path), fixed directly by the
+  Architect (repository access available), documented here rather than
+  via a new Contract, consistent with Revisions 1.1 and Contract 0001's/
+  0003's own precedent.
+
+## Revision 1.3 (2026-07-20)
+
+- Added `tzdata` to `requirements.txt`. Reason: Revision 1.2's
+  `ZoneInfo("Europe/Prague")` raised `No time zone found with key
+  Europe/Prague` on the person's Windows machine. `zoneinfo` (stdlib)
+  relies on the operating system's IANA time zone database, which Linux
+  and macOS ship with but Windows does not — Python's own documentation
+  recommends the `tzdata` package as the cross-platform fallback data
+  source. **This gap is the Architect's own, not the Implementation
+  Agent's**: Revision 1.2 was written and tested directly by the
+  Architect in a Linux sandbox, where the database happens to already be
+  present, and the Windows-specific failure mode was not considered before
+  shipping. Recorded plainly rather than reframed — the same standard this
+  Contract has applied to every other deviation, regardless of who made
+  it.

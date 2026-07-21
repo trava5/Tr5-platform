@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import os
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from google import genai
 from google.genai import types
@@ -14,6 +17,19 @@ from profiles.profile_loader import Profile
 MAX_TOOL_ROUND_TRIPS = 5
 
 
+def _current_time_context() -> str:
+    """Aktuální datum a čas, vkládá se čerstvě do každé zprávy.
+
+    Bez tohoto bloku model nemá žádný způsob, jak převést relativní čas
+    ("zítra v 15:00") na skutečné ISO datum — stejný vzor jako
+    main.py's `_build_config` (`[AKTUÁLNÍ ČAS]`), ale počítaný per-message,
+    ne jednou při připojení, protože zde neexistuje trvalá relace.
+    """
+    tz = ZoneInfo(os.getenv("JARVIS_TIMEZONE", "Europe/Prague"))
+    now = datetime.now(tz)
+    return f"[AKTUÁLNÍ ČAS]\n{now.strftime('%d.%m.%Y — %H:%M')}"
+
+
 def build_generation_config(profile: Profile) -> types.GenerateContentConfig:
     function_declarations = [
         types.FunctionDeclaration(
@@ -23,8 +39,9 @@ def build_generation_config(profile: Profile) -> types.GenerateContentConfig:
         )
         for tool in profile.tools.values()
     ]
+    system_instruction = f"{_current_time_context()}\n\n{profile.prompt}"
     return types.GenerateContentConfig(
-        system_instruction=profile.prompt,
+        system_instruction=system_instruction,
         tools=[types.Tool(function_declarations=function_declarations)],
     )
 

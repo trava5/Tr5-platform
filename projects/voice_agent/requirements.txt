@@ -6,3 +6,4 @@ sqlalchemy
 asyncpg
 requests
 google-genai>=1.65.0
+tzdata

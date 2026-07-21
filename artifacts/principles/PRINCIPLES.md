@@ -217,6 +217,30 @@ alone.
 
 ---
 
+### P19 — Dependency verification must include deferred imports, not just module-level ones.
+Status: Active
+
+Extracted from a live test after Contract 0005: `calendar.py`'s Google
+Calendar API imports (`googleapiclient`, `google.oauth2.credentials`, etc.)
+are deferred inside a function body, not declared at module top level.
+Contract 0003's dependency check searched only top-level `import`/`from`
+lines (`grep "^from \|^import "`), missed these, and shipped a
+`requirements.txt` that let the module *import successfully* while still
+failing at actual call time with a real user waiting on a real answer —
+worse than an import-time failure, because it surfaces late, inside a
+production-shaped code path, not during setup.
+
+Live end-to-end testing (a human sending real messages against a real
+model, not just structural verification) found this in minutes; static
+review of the code had not. Neither replaces the other: structural review
+catches shape/contract violations early and cheaply, live testing catches
+what only shows up when real inputs meet real code paths. Both remain
+part of the process — this is not a reason to make live testing mandatory
+for every Contract (P12), but a documented reminder that "no top-level
+import found" is not the same claim as "no dependency exists."
+
+---
+
 ## Roles
 
 | Role | Responsibility |
