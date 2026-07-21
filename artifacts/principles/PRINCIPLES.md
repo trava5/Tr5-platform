@@ -241,6 +241,31 @@ import found" is not the same claim as "no dependency exists."
 
 ---
 
+### P20 — An uncommitted local fix is invisible to the next review cycle and can be silently overwritten.
+Status: Active
+
+Extracted from a real incident: Contract 0003's Google Calendar dependency
+fix (Revision 1.1) was applied locally by the person (confirmed by their
+own successful `pip install` log) but never committed. A later, unrelated
+fix (Contract 0005 Revision 1.3, `tzdata`) was built by the Architect from
+a fresh clone of the repository — which, lacking the uncommitted local
+change, produced a `requirements.txt` missing the Calendar packages. The
+person then applied that zip on top of their working copy, silently
+reverting their own local fix.
+
+The Architect's review process always works from a fresh clone (deliberate
+— it is the only way to review what is actually true, not what is assumed
+true). This is correct and SHALL NOT change. The consequence is that any
+local change not yet committed effectively does not exist from the
+Architect's point of view, and a subsequent delivered fix can overwrite it
+without either party noticing until a symptom reappears. Mitigation:
+commit and push immediately after applying any delivered fix, before
+starting the next piece of work — already the standing instruction after
+every review, but this incident is the concrete reason it matters, not
+just process hygiene for its own sake.
+
+---
+
 ## Roles
 
 | Role | Responsibility |
