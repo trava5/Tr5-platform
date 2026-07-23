@@ -89,6 +89,8 @@ Two independent root causes, both fixed here:
   `GEMINI_API_KEY` / `GEMINI_TEXT_MODEL` (same env var names as today,
   same default for the model as today) — no `.env`/`.env.example` change
   needed, only where the values are read from internally.
+
+  > Status: Done.
 - `backend/app.py`:
   - `create_app()` reads `settings.gemini_api_key` /
     `settings.gemini_text_model` — zero direct `os.getenv` calls remain
@@ -96,8 +98,24 @@ Two independent root causes, both fixed here:
   - Module-level `app = create_app()` removed entirely.
   - `create_app` remains the module's factory function, used directly by
     uvicorn's `--factory` flag (`backend.app:create_app`).
+
+  > Status: Done — `import os` also removed (no longer used anywhere in
+  > the file). One disclosed deviation beyond this bullet's literal file
+  > list: `backend/__main__.py` (a Contract 0002 deliverable, not listed
+  > in this Contract's Inputs) hardcoded `uvicorn.run("backend.app:app",
+  > ...)`, which would have broken `python -m backend` the moment the
+  > module-level `app` was removed. Flagged to the person before
+  > proceeding (this Contract's own Out of Scope literally forbids
+  > touching Contract 0002-0006 deliverables beyond `app.py`/`config.py`);
+  > with explicit permission, updated to
+  > `uvicorn.run("backend.app:create_app", factory=True, ...)` — the one
+  > obvious fix, no design choice involved. See Completion Notes.
 - `projects/voice_agent/README.md` updated: run instructions changed to
   the `--factory` form.
+
+  > Status: Done — also updated `backend/README.md`'s "Spusteni" section
+  > with the explicit `uvicorn ... --factory` command, since the top-level
+  > README doesn't demonstrate that command directly.
 - `CLAUDE.md` (repository root, not this project): add a short, standing
   instruction for the Implementation Agent — when verifying any Contract
   that touches `backend/app.py` or anything constructed from it, always
@@ -107,6 +125,9 @@ Two independent root causes, both fixed here:
   the isolation mechanism for this project. This is documentation of
   practice, not a new code mechanism — the mechanism is the two fixes
   above; this just tells future agents to actually use it.
+
+  > Status: Done — added under a new "Verifying anything built on
+  > backend/app.py (voice_agent)" section, above "Current active work".
 
 ---
 
@@ -140,6 +161,18 @@ The implementation SHALL:
   values from a real `.env` when actually running as a server (not merely
   imported) — i.e., confirm normal operation is unchanged, only the
   import-time behavior changed.
+
+> Status: Done — all five requirements verified with actual test calls
+> (see Acceptance Criteria annotation for the concrete evidence), run
+> against the real, present `.env` (real `GEMINI_API_KEY`/`DATABASE_URL`)
+> to make the import-time test meaningful, per this Contract's own
+> instruction that this is "exactly the scenario that caused the incident,
+> so it is the one that must be verified where it matters." No message was
+> ever sent and no write ever made against the real Postgres instance
+> during this Contract's verification — only a bare `import`, an
+> explicit-settings `TestClient` run (forced `database_url=""`), and two
+> read-only HTTP calls (`/api/v1/health`, `/api/v1/status`) against a real,
+> temporarily-started server, torn down immediately after.
 
 ---
 
@@ -182,6 +215,22 @@ The implementation is accepted when:
 - `README.md` and `CLAUDE.md` updated as scoped.
 - The Contract is annotated per DOCUMENT_STANDARD §3.1.
 
+> Status: Done — every criterion verified with actual test calls: (1)
+> `grep`-equivalent search of `app.py` for `os.getenv`/`import os` returns
+> nothing; (2) `grep`-equivalent search for `^app = create_app` returns
+> nothing; (3) bare `import backend.app` with the real `.env` present
+> tracked `os.getenv`, `genai.Client.__init__`, and `create_engine` calls —
+> zero of any of them, and `hasattr(backend.app, "app")` is `False`; (4)
+> `create_app(settings=BackendSettings(gemini_api_key="", database_url="",
+> ...))` produced `status: "runtime_unavailable"` and
+> `database.configured: False`, matching the environment-driven path's
+> shape; (5) a real server started via
+> `uvicorn backend.app:create_app --factory --port 8123` against the real
+> `.env` correctly showed `agent_runtime.connected: true` and
+> `database.configured/ok: true` via `/api/v1/health`/`/api/v1/status`,
+> then was shut down; (6) `README.md`/`CLAUDE.md` updated, this annotation
+> pass fulfills the last criterion.
+
 ---
 
 # Architecture Review
@@ -221,7 +270,43 @@ drafted.
 
 # Completion Notes
 
-(To be completed after implementation.)
+Implemented as scoped. `BackendSettings` gained `gemini_api_key`/
+`gemini_text_model`, populated in `load_settings()` from the same env var
+names as before. `create_app()` now reads both from `settings`; the
+module-level `app = create_app()` and the now-unused `import os` were
+removed. `README.md` (top-level and `backend/README.md`) updated with the
+explicit `--factory` command.
+
+**Disclosed deviation, agreed with the person before implementing:**
+`backend/__main__.py` was not in this Contract's Inputs and its Out of
+Scope literally forbids touching Contract 0002-0006 deliverables beyond
+`app.py`/`config.py` — but `__main__.py` hardcoded
+`uvicorn.run("backend.app:app", ...)`, which is exactly the string this
+Contract's own fix removes. Left unfixed, `python -m backend` (the
+project's documented launch command) would have broken the moment this
+Contract's Outputs were implemented. This looked like an oversight in
+Inputs/Out of Scope rather than a deliberate exclusion (no reasoning for
+excluding it appears anywhere in the Contract, unlike the deliberate
+`AgentRuntime` exclusion in Contract 0005/0006). Flagged before touching
+anything; the person approved fixing it as a disclosed deviation rather
+than blocking on a full Contract amendment. Changed to
+`uvicorn.run("backend.app:create_app", factory=True, ...)` — the same
+one-line pattern this Contract already applies everywhere else, no new
+design decision.
+
+Verification note: Acceptance Criterion 3 (import-time safety) and
+criterion 5 (real server operation) were both verified against the actual,
+real `.env` present in this environment (real `GEMINI_API_KEY`, real
+`DATABASE_URL`), per this Contract's own instruction that this is the
+scenario that actually matters. This was done safely this time, using
+exactly the practice this Contract's own `CLAUDE.md` addition now
+prescribes: the import-safety test only *observed* (via monkeypatched
+trackers) whether `os.getenv`/`genai.Client`/`create_engine` were called,
+never actually invoking them; the explicit-settings test forced
+`database_url=""` and `gemini_api_key=""` on the `BackendSettings` object
+itself; the real-server test hit only the two read-only endpoints
+(`/api/v1/health`, `/api/v1/status`) — no message was sent, no write
+occurred, and the server was torn down immediately after.
 
 ---
 
@@ -233,4 +318,15 @@ drafted.
 
 # Lessons Learned
 
-(To be completed after implementation.)
+- When a Contract's fix necessarily changes a public entry point (here:
+  the module-level `app` object), grep the whole repo for every reference
+  to that entry point before assuming Inputs/Out of Scope captured every
+  affected file — `backend/__main__.py` referenced the exact string being
+  removed and was not listed anywhere in this Contract, despite being a
+  real, in-repo, previously-working launch path.
+- The fix genuinely works, tested the way it was meant to be tested: a
+  bare `import backend.app` with a real, credential-bearing `.env` present
+  makes zero real external calls (tracked directly, not inferred), and an
+  explicit `BackendSettings` object is now a complete isolation boundary —
+  both were false before this Contract, which is exactly what caused the
+  Contract 0006 incident this Contract exists to fix.

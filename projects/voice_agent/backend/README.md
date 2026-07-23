@@ -18,6 +18,13 @@ Skutecne hodnoty patri do lokalniho `.env`.
 .\.venv\Scripts\python.exe -m backend
 ```
 
+nebo primo pres uvicorn s factory patternem (`create_app()` neni volana pri
+importu modulu, jen kdyz server skutecne startuje):
+
+```powershell
+.\.venv\Scripts\uvicorn.exe backend.app:create_app --factory --reload --port 8000
+```
+
 Vychozi adresa je `http://127.0.0.1:8000`.
 
 ## Endpointy

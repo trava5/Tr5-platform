@@ -10,7 +10,8 @@ from .config import load_settings
 def main() -> None:
     settings = load_settings()
     uvicorn.run(
-        "backend.app:app",
+        "backend.app:create_app",
+        factory=True,
         host=settings.host,
         port=settings.port,
         reload=settings.reload,

@@ -30,8 +30,14 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 - Short-term memory (`/api/v1/memory/short-term`) and long-term decision
   (`/api/v1/memory/decisions`) storage, plus a one-time SQLite import
   endpoint (`/api/v1/memory/import/sqlite`).
-- Runs standalone via `uvicorn`, without any database configured (in-memory
+- Runs standalone via `uvicorn backend.app:create_app --factory` (or
+  `python -m backend`), without any database configured (in-memory
   fallback), or against PostgreSQL when `DATABASE_URL` is set.
+  `backend/app.py` has no module-level app instance and no direct
+  `os.getenv` calls — `create_app()` only runs when a server is actually
+  started (or explicitly called), never as an import side effect, and
+  every setting (including `GEMINI_API_KEY`/`GEMINI_TEXT_MODEL`) is read
+  through `BackendSettings`.
 - Includes `backend/client.py` and `backend/realtime_client.py` as
   reference HTTP/WebSocket clients for other Tr5 applications.
 - `actions/` provides a catalog-driven tool mechanism (`tool_catalog.py`,

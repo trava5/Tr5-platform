@@ -58,6 +58,17 @@ You implement. You do not architect.
    the Contract if the implementation revealed something the Architects
    should know.
 
+## Verifying anything built on `backend/app.py` (voice_agent)
+
+When verifying any Contract that touches `projects/voice_agent/backend/app.py`
+or anything constructed from it: always call
+`create_app(settings=BackendSettings(...))` with an explicit, fully-populated
+settings object (real fields blanked or fake). Never rely on `os.environ`
+mutation (`pop`, direct assignment, `monkeypatch.setenv`) as the isolation
+mechanism for this project — a real `.env` file can silently repopulate
+anything you clear this way. `BackendSettings` is the complete isolation
+boundary (per `IMPLEMENTATION_CONTRACT_0007`); use it, don't work around it.
+
 ## Current active work
 
 - `IMPLEMENTATION_CONTRACT_0001` (Revision 1.1): implement the Discovery

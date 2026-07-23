@@ -42,6 +42,8 @@ class BackendSettings:
     database_user: str
     database_password: str
     database_schema: str
+    gemini_api_key: str
+    gemini_text_model: str
     api_prefix: str = "/api/v1"
 
     @property
@@ -61,4 +63,6 @@ def load_settings() -> BackendSettings:
         database_user=os.getenv("DATABASE_USER", "").strip(),
         database_password=os.getenv("DATABASE_PASS", "").strip(),
         database_schema=os.getenv("DATABASE_SCHEMA", "").strip(),
+        gemini_api_key=os.getenv("GEMINI_API_KEY", "").strip(),
+        gemini_text_model=os.getenv("GEMINI_TEXT_MODEL", "models/gemini-2.5-flash").strip(),
     )

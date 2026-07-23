@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import os
-
 from fastapi import FastAPI
 
 from .api import create_api_router
@@ -21,12 +19,10 @@ def create_app(settings: BackendSettings | None = None) -> FastAPI:
     realtime_events = RealtimeEventHub()
     agent_runtime = AgentRuntime(conversations, realtime_events=realtime_events)
 
-    api_key = os.getenv("GEMINI_API_KEY", "").strip()
-    if api_key:
-        model = os.getenv("GEMINI_TEXT_MODEL", "models/gemini-2.5-flash").strip()
+    if settings.gemini_api_key:
         handler = build_handler(
-            api_key=api_key,
-            model=model,
+            api_key=settings.gemini_api_key,
+            model=settings.gemini_text_model,
             profiles_root=BASE_DIR / "profiles",
             memory=memory,
         )
@@ -49,6 +45,3 @@ def create_app(settings: BackendSettings | None = None) -> FastAPI:
         )
     )
     return app
-
-
-app = create_app()
