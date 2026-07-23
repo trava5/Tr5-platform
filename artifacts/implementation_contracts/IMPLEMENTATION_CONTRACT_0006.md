@@ -402,6 +402,14 @@ external side effects (Phase 4c, Telegram bridge, most likely) should not
 proceed until the P21 backlog item is at least discussed, given it already
 caused one real incident.
 
+**Person's independent confirmation (2026-07-22):** verified their own
+production database directly — exactly 8 conversations present, matching
+the Agent's own before/after count, and confirmed the permission to delete
+the two junk conversations was theirs, given directly to the Implementation
+Agent. Incident considered closed on the data-integrity question; the
+structural gap itself (P21, backlog) remains open and unresolved by this
+Contract.
+
 ---
 
 # Lessons Learned
