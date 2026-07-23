@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0006
 
-Status: Accepted
+Status: Implemented
 
 ---
 
@@ -354,7 +354,53 @@ with this Contract's own Out of Scope.
 
 # Implementation Review
 
-(To be completed after implementation.)
+### Round 1 — 2026-07-22 — Verdict: Accepted, with a serious flagged incident
+Reviewer: Architect
+
+Functional verification independently re-confirmed, safely, in the
+Architect's own sandbox (no `.env` present there at all, so no real
+credentials were ever reachable — different safety margin than the
+Implementation Agent had, which ran on the person's own machine with a
+real `.env` present):
+
+- Built a fake `genai.Client` via `AsyncMock` and an `InMemoryMemoryRepository`
+  (no real network, no real database anywhere in this test): confirmed a
+  second `handle_message` call in the *same* `conversation_id` sends 3
+  `contents` on the second Gemini call and includes the first exchange's
+  text; a call in a *different* `conversation_id` sends only 1 (no
+  cross-contamination). Confirmed exactly 4 stored turns for the first
+  conversation after 2 exchanges, exactly 2 for the second after 1 —
+  matching the Contract's Acceptance Criteria precisely.
+- Re-ran the `GEMINI_API_KEY`-unset regression: identical `status` output
+  to Contracts 0002/0005. Confirmed safe: this Architect's sandbox has no
+  `.env` file at all (it is gitignored and was never part of any clone),
+  so `_load_env_file` had nothing to load regardless of any pop/unset
+  question — this environment was never at risk of repeating the
+  Implementation Agent's incident, by construction rather than by care
+  taken in the moment.
+
+**The incident disclosed in Completion Notes is accepted as correctly
+handled, but is the dominant finding of this review, not a footnote.**
+Real external systems (the person's actual Gemini quota/cost and actual
+home database) were touched by verification code. The Agent's own
+disclosure, permission-seeking, and precise remediation are commended
+explicitly — this is exactly the standard expected when something goes
+wrong, per P11's spirit applied to mistakes, not just to open questions.
+Extracted as P21 (new, safety-relevant) and a priority backlog item in
+PRINCIPLES.md — the underlying structural gap
+(`backend/app.py`'s import-time `create_app()` side effect) is not fixed
+by this Contract and remains open.
+
+**This Architect cannot independently verify the person's real database
+state** — the deletion's correctness rests on the Implementation Agent's
+own before/after listing, not on independent confirmation. The person is
+asked directly, outside this Contract text, to verify their own database.
+
+Status changed to `Implemented` — the delivered code meets its Acceptance
+Criteria — but flagged: the next Contract touching anything with real
+external side effects (Phase 4c, Telegram bridge, most likely) should not
+proceed until the P21 backlog item is at least discussed, given it already
+caused one real incident.
 
 ---
 

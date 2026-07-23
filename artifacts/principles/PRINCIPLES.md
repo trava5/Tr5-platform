@@ -266,6 +266,48 @@ just process hygiene for its own sake.
 
 ---
 
+### P21 — Verification code must be structurally incapable of touching real external systems, not just instructed to avoid them.
+Status: Active
+
+Extracted from a serious incident in Contract 0006: automated verification
+of Acceptance Criteria made two real Gemini API calls and wrote real rows
+into the person's real home Postgres database — a production system, not
+a test fixture. Root cause was not carelessness but a genuine structural
+trap: `os.environ.pop("GEMINI_API_KEY")` does not simulate "unset" against
+this codebase's `_load_env_file()` (which only skips keys already present,
+so popping one makes it reload from the real `.env`), and
+`backend/app.py`'s module-level `app = create_app()` (required for
+uvicorn's `module:app` import string) runs real settings loading as a side
+effect of merely *importing* the module — before any test-local isolation
+code gets a chance to run.
+
+The Implementation Agent handled the aftermath well: immediate disclosure,
+explicit permission requested before deleting anything, precise
+content-matched deletion, verified before/after. That response is the
+standard to hold — but the goal is for this situation not to recur, not
+just to be handled gracefully when it does.
+
+This time the damage was a handful of junk conversation rows and two
+inexpensive API calls. The same class of gap could, in a future Contract,
+trigger a real side-effecting tool (e.g. `add_calendar_event` against the
+person's actual calendar) during "verification." Acceptance Criteria that
+say "verify without a real API key" or "no real database" describe an
+*intent*; they are not a *mechanism*. Future Contracts touching anything
+that can reach a real external system SHALL specify the actual isolation
+mechanism (e.g. dependency injection of fakes with no environment-variable
+path to real credentials at all, subprocess isolation with a
+deliberately-empty environment, or an explicit `TESTING`-gated code path
+that a real deployment can never accidentally take) — not simply instruct
+"don't use the real one."
+
+Open follow-up, not yet resolved: `backend/app.py`'s module-level
+`create_app()` side effect on import is itself worth revisiting — a
+future Contract should consider whether the app factory can be made safe
+to import without side effects, independent of whatever test discipline
+individual Contracts practice.
+
+---
+
 ## Roles
 
 | Role | Responsibility |
@@ -324,6 +366,16 @@ requires it (see Backlog).
 These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
+- **[Priority — safety-relevant] Test/production isolation mechanism
+  (P21).** `backend/app.py`'s module-level `app = create_app()` triggers
+  real settings loading on import, which contributed to a real incident
+  (Contract 0006) where verification code reached the person's real
+  Gemini API and real Postgres database. Needs a real structural fix
+  (dependency injection, subprocess isolation, or a `TESTING`-gated path),
+  not just documented caution. Should be addressed before Phase 4c
+  (Telegram bridge — a channel with its own real external side effects)
+  if not sooner, given it directly affects verification safety for every
+  subsequent Contract.
 - **`projects/platform_shell/` (future direction, discussed not yet
   scheduled).** Tr5 needs a universal entry point for the whole platform —
   see P17 for the accepted design stance (click is the mandatory, primary
