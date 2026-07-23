@@ -36,6 +36,14 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   only streams audio in/out, never talking to Gemini directly. Without
   `GEMINI_API_KEY`, the connection is accepted then cleanly closed with a
   `runtime_unavailable` reason, not a bare drop.
+- `client/live_audio_client.py` is a standalone console client (Phase 4b-2):
+  captures microphone audio (16-bit PCM, mono, 16kHz, 1024-frame chunks via
+  `pyaudio`) and streams it to `/api/v1/live/audio`, plays back the 24kHz
+  audio response, and prints transcripts to the console. Resolves the
+  backend URL using the same `JARVIS_BACKEND_BASE_URL`/`_HOST`/`_PORT`
+  convention as `realtime_client.py`. Run with
+  `python -m client.live_audio_client`. No GUI, no activation gating —
+  streams continuously until Ctrl+C.
 - `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` expose
   stored conversation sessions.
 - Short-term memory (`/api/v1/memory/short-term`) and long-term decision
@@ -74,10 +82,16 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   audio); `long_term_decisions` needs a confirmation UX that does not exist
   yet. Only one profile (`000_base`).
 - Live audio (`/api/v1/live/audio`) has no memory/continuity across
-  sessions, and no desktop or other real client exists yet — it is
-  verified with a scripted WebSocket test client sending raw bytes, not a
-  real microphone. Building that client (`pyaudio` capture/playback) is
-  Phase 4b-2.
+  sessions. `client/live_audio_client.py` is a plain console script only —
+  no GUI, no `platform_shell` integration, no wake-word/push-to-talk
+  activation; real voice comprehension end-to-end requires the person's
+  own microphone, speakers, and real `GEMINI_API_KEY`, and is their
+  verification step, not this repository's automated one. `pyaudio` has no
+  prebuilt wheel for every Python version/platform (notably, none yet for
+  Python 3.14 on Windows as of this writing — it falls back to a source
+  build requiring Microsoft C++ Build Tools); install a Python version with
+  a prebuilt `pyaudio` wheel, or install the Build Tools, if `pip install`
+  fails to build it.
 - Only the numbered, cataloged `actions/` are present. The ten flat,
   uncataloged legacy action modules and `features/001_elevenlabs_voice/`
   are not transferred — both are still coupled to the source project's
@@ -93,8 +107,6 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   cross-session facts (not just recent-turn continuity) is identified.
 - Phase 4b-1-bis: memory/continuity for live audio sessions, likely reusing
   `MemoryRepository` the same way Contract 0006 did for text.
-- Phase 4b-2: real desktop audio client (`pyaudio` capture/playback)
-  talking to `/api/v1/live/audio`.
 - Phase 4c: enable and verify `features/002_telegram_bridge` end-to-end.
 - Platform-level review: define how any Tr5 application connects to the
   voice agent.

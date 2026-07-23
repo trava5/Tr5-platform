@@ -107,11 +107,26 @@ Contract proves the audio path works at all.
     server reports `runtime_unavailable`).
   - Clean shutdown on Ctrl+C / connection close: streams and the
     WebSocket connection are closed properly, no orphaned threads.
+
+  > Status: Done — `live_audio_client.py` created with `load_config`
+  > (env-var resolution mirroring `realtime_client.py`),
+  > `_send_microphone_audio` (dedicated sending thread), `_receive_and_play`
+  > (main thread, receiving/playing/printing), and `run()` orchestrating
+  > both plus cleanup. `client/__init__.py` added (mechanical — matches
+  > every sibling directory's existing convention: `actions/`,
+  > `backend/`, `features/`, `profiles/` all have one).
 - `projects/voice_agent/requirements.txt`: `pyaudio` added.
 - `projects/voice_agent/README.md`: run instructions for the client
   (`python -m client.live_audio_client` or equivalent), and a note that
   this requires a working microphone/speakers and is verified by the
   person locally, not by the Architect.
+
+  > Status: Done — also documented a real, environment-specific finding:
+  > `pyaudio` has no prebuilt wheel for Python 3.14 on Windows as of this
+  > writing (`pip install pyaudio` fails building the C extension without
+  > Microsoft C++ Build Tools installed). This blocked installing the real
+  > package in the implementation environment; see Completion Notes for how
+  > verification proceeded despite this.
 
 ---
 
@@ -132,6 +147,11 @@ The implementation SHALL:
   exception, no hung process) — verified with an actual test (e.g. the
   server closing the connection during an active session).
 - Not require any change to `backend/` — this Contract is client-only.
+
+> Status: Done — all four requirements verified with actual test calls
+> (see Acceptance Criteria annotation and Completion Notes for the exact
+> evidence and sources). No file under `backend/` was modified by this
+> Contract.
 
 ---
 
@@ -169,6 +189,22 @@ The implementation is accepted when:
 - `pyaudio` is added to `requirements.txt`; `README.md` has clear run
   instructions.
 - The Contract is annotated per DOCUMENT_STANDARD §3.1.
+
+> Status: Done — every criterion verified with actual test calls, not
+> code inspection: (1) audio parameters (`paInt16`, mono, 16kHz send,
+> 24kHz receive, 1024-frame chunks) match `gemini_live_audio_handler.py`'s
+> `AUDIO_INPUT_MIME_TYPE` exactly; env-var resolution verified directly
+> (`JARVIS_BACKEND_HOST`/`_PORT` → correct `ws://.../api/v1/live/audio`
+> URL); (2) ran the real client against a real backend (started via the
+> Contract 0007 factory command) with `GEMINI_API_KEY` blank — printed the
+> clear error message and exited via `sys.exit(1)`, no hang; (3) ran the
+> real client against a minimal fake WebSocket server that sent one
+> transcript then closed the connection mid-session — client printed the
+> transcript and completed cleanly in under half a second, no unhandled
+> exception, no hung thread; (4) documented below with source; (5)
+> `pyaudio` added to `requirements.txt`, `README.md` updated with run
+> instructions and the wheel-availability caveat; (6) this annotation pass
+> fulfills the last criterion.
 
 ---
 
@@ -215,7 +251,58 @@ same division of labor used for every prior live-capability Contract.
 
 # Completion Notes
 
-(To be completed after implementation.)
+Implemented as scoped. `projects/voice_agent/client/live_audio_client.py`
+created (plus `client/__init__.py`); `requirements.txt` gained `pyaudio`;
+`README.md` gained capability/limitation/planned-evolution notes and run
+instructions.
+
+**Concurrent send/receive thread-safety question (Intent/Functional
+Requirements), resolved and documented as required:** confirmed against
+the official `websockets` 16.1.1 documentation
+(`websockets.readthedocs.io/en/stable/reference/sync/common.html`, the
+installed version matching `requirements.txt`): a `websockets.sync.client`
+connection raises `ConcurrencyError` only if two threads call `recv()`/
+`recv_streaming()` *concurrently with each other*, or if `send()` is called
+while a fragmented message is still being sent. It is explicitly documented
+as safe for one thread to call `send()` while a different thread
+concurrently calls `recv()`. This client's design has exactly one thread
+calling `send()` (the microphone-sending thread, in `_send_microphone_audio`)
+and exactly one thread calling `recv()` (the main thread, via `for message
+in websocket:` inside `_receive_and_play`) — never the same method from two
+threads — so no lock is needed; the design falls squarely inside the
+documented-safe pattern rather than the restricted one. Chosen over
+switching to `asyncio` (Intent's fallback option) because the documented
+guarantee is sufficient and matches `realtime_client.py`'s existing
+synchronous style, per P13.
+
+**`pyaudio` installability finding:** `pip install pyaudio` failed in the
+implementation environment (`Tr5-platform/.venv`, Python 3.14 on Windows) —
+no prebuilt wheel exists for `cp314-win_amd64` as of this writing, and
+building from source failed with "Microsoft Visual C++ 14.0 or greater is
+required." This is an environment/toolchain gap, not a design conflict: the
+Contract's own Out of Scope already establishes that real audio hardware
+verification is the person's job, not this Contract's Acceptance
+Criteria — this finding extends that same reasoning one step earlier, to
+installing the package at all in this particular environment. `pyaudio`
+remains the real, correct dependency in `requirements.txt` and in the
+shipped code (unchanged from what the Contract specifies); no alternative
+library was substituted.
+
+Verification proceeded by injecting a fake `pyaudio` module into
+`sys.modules` (a plain Python stand-in for `PyAudio`/its stream object —
+`read()` returns silence bytes, `write()`/`stop_stream()`/`close()`/
+`terminate()` are no-ops) before importing `client.live_audio_client`, so
+the real WebSocket-connection, threading, and error-handling logic in the
+shipped code executes exactly as written, with only the audio-hardware
+boundary replaced — the same "replace only the actual external boundary"
+principle used for the real Gemini network calls in Contracts 0008 and
+elsewhere. Both required actual-run criteria were exercised this way,
+against real running servers (Contract 0007's factory-started backend for
+the unset-key case; a minimal real `websockets.sync.server` for the
+mid-stream-disconnect case, to fully control disconnect timing without
+needing to also fake a Gemini Live session end-to-end). Both throwaway test
+scripts were deleted after use, per this repository's established
+verification style (Contract 0004's precedent).
 
 ---
 
@@ -227,4 +314,21 @@ same division of labor used for every prior live-capability Contract.
 
 # Lessons Learned
 
-(To be completed after implementation.)
+- A genuinely open technical question named in a Contract (here: sync
+  `websockets` thread safety) can have a clean, real answer sitting one
+  documentation page away — worth checking the primary source directly
+  rather than assuming a lock is needed "to be safe," which would have
+  been unnecessary complexity for a two-thread, one-sends/one-receives
+  design that's already within the library's documented-safe pattern.
+- Bleeding-edge local Python versions (here: 3.14) can lack prebuilt wheels
+  for C-extension packages like `pyaudio` well before that becomes obvious
+  from the Contract text alone — worth a quick `pip install` probe early
+  when a Contract adds a new native dependency, so the finding (and the
+  verification workaround) can be planned rather than discovered mid-test.
+- Stubbing a hardware-boundary module via `sys.modules` (rather than
+  installing the real thing) is a reasonable, precedented way to verify
+  the *code around* a hardware dependency when the real dependency can't
+  be installed in the current environment — it keeps the shipped code
+  honestly dependent on the real package while still exercising every
+  other real code path (WebSocket connection, threading, JSON parsing,
+  error handling) end-to-end.
