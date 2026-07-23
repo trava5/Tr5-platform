@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0008
 
-Status: Accepted
+Status: Implemented
 
 ---
 
@@ -364,7 +364,38 @@ only the Gemini network boundary itself replaced.
 
 # Implementation Review
 
-(To be completed after implementation.)
+### Round 1 — 2026-07-23 — Verdict: Accepted
+Reviewer: Architect
+
+Verified independently, not by trusting Completion Notes' SDK-shape
+claims alone: (1) regression — re-ran Contract 0006's multi-turn
+continuity test against the refactored `gemini_chat_handler.py`, passed
+identically, confirming the `gemini_common.py` extraction changed nothing
+observable; (2) confirmed a connection to `/api/v1/live/audio` is cleanly
+rejected with a `runtime_unavailable`-shaped JSON error, not a bare drop,
+when `GEMINI_API_KEY` is unset — via a real `TestClient.websocket_connect`
+call, not inspection; (3) wrote an independent (not the Agent's) fully
+scripted fake Live `AsyncSession` and fake WebSocket, drove
+`GeminiLiveAudioHandler.handle_connection` directly with a deliberately
+unknown tool name, and confirmed: the outgoing `FunctionResponse.id`
+matches the incoming `FunctionCall.id` exactly (the specific, easy-to-miss
+detail Completion Notes highlighted as the one genuinely new finding);
+the error content is descriptive, not a raised exception; audio bytes,
+transcript, and `turn_complete` all forward correctly to the client in
+order. This independently corroborates the Agent's central technical
+claim rather than merely accepting it. The SDK-shape findings themselves
+(exact parameter names, the `id`-matching requirement) were obtained by
+introspecting the installed package directly rather than summarizing
+documentation — a sound choice for a preview-stage API, and the resulting
+claims held up against this Architect's own from-scratch test. Status
+changed to `Implemented`.
+
+Standing limitation, unchanged from every prior live-capability Contract:
+no real `GEMINI_API_KEY` or real audio was used in this review — full
+voice comprehension against the real Live API is the person's own
+verification once Phase 4b-2 (desktop client) exists to actually produce
+real microphone audio; this Contract's endpoint has no way to be
+exercised end-to-end without one.
 
 ---
 
