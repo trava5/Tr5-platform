@@ -107,9 +107,19 @@ it does not design new storage.
   `handler(request)`. This is the disclosed, narrow exception to Contract
   0005's "do not modify `AgentRuntime`" boundary, agreed with the person
   before drafting this Contract.
+
+  > Status: Done — `LiveMessageHandler` is now
+  > `Callable[[MessageRequest, str], ...]`; the single call site at
+  > `agent_runtime.py`'s `handle_message` passes
+  > `conversation.conversation_id`. No other line in `agent_runtime.py`
+  > touched.
 - `backend/app.py`: `build_handler(...)` call extended with `memory=memory`
   (the already-created repository, simply threaded through — no new
   factory logic).
+
+  > Status: Done — `memory` (already created earlier in `create_app()`)
+  > passed straight through to `build_handler(...)`; no new factory logic
+  > added.
 - `backend/services/gemini_chat_handler.py`:
   - `build_handler(...)` accepts and stores `memory: MemoryRepository`.
   - `handle_message(request, conversation_id, ...)` — updated signature.
@@ -124,9 +134,21 @@ it does not design new storage.
   - `MEMORY_RECENT_TURNS_LIMIT` defined as a module constant (default 20,
     matching `MemoryRepository`'s own interface default — not a new
     number invented here).
+
+  > Status: Done — `build_handler` now accepts and stores `memory`;
+  > `handle_message` loads `recent_short_term_turns` before the Gemini
+  > call, maps roles via `_content_from_memory_item`, and saves exactly
+  > the user text and final assistant text (not intermediate tool-call
+  > parts) after the round trip completes — via a single `for...else` loop
+  > so the save happens exactly once regardless of exit path. Verified
+  > with `InMemoryMemoryRepository` (no real database) — see Completion
+  > Notes for the full account, including a testing-methodology mistake
+  > that was caught, disclosed, and corrected mid-verification.
 - `projects/voice_agent/README.md` updated: "Current capabilities" gains
   multi-turn continuity backed by short-term memory; "Current limitations"
   notes long-term decisions remain unimplemented.
+
+  > Status: Done.
 
 ---
 
@@ -157,6 +179,21 @@ The implementation SHALL:
   `DATABASE_SCHEMA` already exist from Contract 0002; this Contract adds
   no new environment variables unless implementation reveals a real need
   (report if so, per P11, rather than inventing one).
+
+> Status: Done — all five requirements verified with actual test calls
+> against `InMemoryMemoryRepository` and a hand-built, `.env`-bypassing
+> `BackendSettings` (never against the real Postgres instance, per Out of
+> Scope): (1) `LiveMessageHandler`/call site changed exactly as scoped,
+> nothing else in `agent_runtime.py` touched; (2) history load/save
+> implemented exactly as scoped; (3) role mapping reuses the existing
+> `types.Content`/`types.Part` construction from Contract 0005's code, no
+> second pattern introduced; (4) same-conversation history inclusion and
+> different-conversation exclusion both verified with `InMemoryMemoryRepository`;
+> (5) confirmed no new env var was needed — `.env.example` untouched by
+> this Contract. `initialize_database`'s lazy schema/table creation was
+> exercised for real (see Completion Notes) but only as an unplanned
+> consequence of a disclosed testing mistake, not as this Contract's
+> verification method.
 
 ---
 
@@ -203,6 +240,17 @@ The implementation is accepted when:
   regression-verified, not assumed.
 - The Contract is annotated per DOCUMENT_STANDARD §3.1.
 
+> Status: Done — every criterion verified with actual test calls, all
+> against `InMemoryMemoryRepository` and isolated settings, never the real
+> Postgres instance or a real Gemini key (see Completion Notes for the
+> testing-methodology issue that was hit and corrected along the way): (1)
+> confirmed by code read and the annotations above; (2) same/different
+> `conversation_id` history inclusion/exclusion both demonstrated; (3)
+> exactly two new entries (user text, assistant final text, no
+> intermediate tool-call content) confirmed for a tool-calling exchange;
+> (4) `GEMINI_API_KEY` unset regression confirmed unchanged from Contract
+> 0005; (5) this annotation pass fulfills the last criterion.
+
 ---
 
 # Architecture Review
@@ -247,7 +295,60 @@ to what it unlocks (real conversational continuity), not a reopening of
 
 # Completion Notes
 
-(To be completed after implementation.)
+Implemented as scoped. `agent_runtime.py`'s `LiveMessageHandler` and its
+one call site updated. `gemini_chat_handler.py` gained
+`MEMORY_RECENT_TURNS_LIMIT`, `_content_from_memory_item`, and an extended
+`handle_message`/`GeminiChatHandler`/`build_handler` that load history
+before and save the new exchange after each Gemini call. `app.py` threads
+`memory` into `build_handler(...)`. `README.md` updated (see Outputs
+annotations). No new environment variables were needed.
+
+**Disclosed incident during verification, fully resolved:** partway
+through re-verifying Contract 0005's "`GEMINI_API_KEY` unset ⇒
+`runtime_unavailable`" regression for this Contract, a real `.env` file
+was discovered to now exist in `projects/voice_agent/` (it did not exist
+during Contract 0005's own verification) containing a real `GEMINI_API_KEY`
+and a real `DATABASE_URL` pointing at the person's home Postgres server.
+Two mistakes in test methodology, both now understood and corrected:
+
+1. `os.environ.pop("GEMINI_API_KEY", None)` does not simulate "unset" —
+   `config.py`'s `_load_env_file()` only skips a key already present in
+   `os.environ`; popping it makes the loader silently reload the real
+   value from the real `.env` file on the next `load_settings()` call.
+2. `backend/app.py` has a module-level `app = create_app()` (needed for
+   uvicorn's `backend.app:app` import string) that runs as a side effect
+   of merely importing the module — with `settings=None`, this always
+   calls the real `load_settings()`/`_load_env_file()`, regardless of any
+   isolated `BackendSettings` object constructed afterward in the same
+   process, because `GEMINI_API_KEY`/`GEMINI_TEXT_MODEL` are read directly
+   from `os.environ` in `create_app`, not from the `BackendSettings` object.
+
+Net effect: two test scripts made real calls to the real Gemini API (one
+each), and the first of the two also wrote real rows (two throwaway
+conversations, channel `"api"`, with junk text like `"ahoj"` /
+`"Ahoj, jak ti mohu pomoci?"` / `"Test odpoved."`) to the person's real
+Postgres database, alongside four `short_term_memory_turns` rows. Both
+were disclosed to the person immediately on discovery, before any further
+action. With explicit permission, the exact junk rows were identified by
+content match (`conv_766b749eb508463a9831a6ec31274940`,
+`conv_7bbe0f78ff8141d2a991f7047d5b35c5` — confirmed by listing, not
+guessed from memory) and deleted via a targeted `DELETE ... WHERE id IN
+(...)`, verified afterward against the real database: zero matching junk
+rows remain, and all eight pre-existing legitimate conversations (channels
+`desktop`/`test`, dated 2026-06-20/21, from earlier manual testing) are
+untouched, confirmed by re-listing before and after.
+
+Corrected methodology used for all verification from that point on, and
+the basis for every Status: Done annotation above: pre-set (never pop)
+`GEMINI_API_KEY`, `GEMINI_TEXT_MODEL`, and `DATABASE_URL` to blank strings
+in `os.environ` *before* importing `backend.app` at all, so `_load_env_file`
+skips reloading the real values regardless of the unavoidable module-level
+`create_app()` import side effect; additionally monkeypatch the real
+`GeminiChatHandler`'s `._client.aio.models.generate_content` even when a
+placeholder key is used, so no real network call can occur under any
+circumstance. All Acceptance Criteria above were (re-)verified this way,
+never against the real Postgres instance or a real Gemini key, consistent
+with this Contract's own Out of Scope.
 
 ---
 
@@ -259,4 +360,25 @@ to what it unlocks (real conversational continuity), not a reopening of
 
 # Lessons Learned
 
-(To be completed after implementation.)
+- A module with a top-level `app = create_app()` (needed for `uvicorn`'s
+  import-string convention) makes plain `import` unsafe for isolated
+  testing once any real secret exists in a real `.env` file anywhere the
+  process can see it — the import alone triggers a full real-settings
+  `create_app()` as a side effect, before any test code runs. Future
+  verification against this backend should pre-set (never pop) every
+  secret-bearing env var to a blank string *before* the first import of
+  `backend.app`, not rely on constructing an isolated `BackendSettings`
+  object afterward — that only isolates fields that actually live on
+  `BackendSettings` (like `database_url`), not ones read directly from
+  `os.environ` inside `create_app` (like `GEMINI_API_KEY`).
+- `os.environ.pop(key, None)` and "unset" are not equivalent whenever a
+  real `.env` file is reachable — `_load_env_file`'s own skip condition
+  (`key in os.environ`) means popping *invites* a reload, while setting the
+  key to `""` first reliably blocks it. Worth remembering for any future
+  Contract's "verify X unset" acceptance criterion in this codebase.
+- When a testing mistake touches a real external system (here: a real API
+  key and a real, person-owned database), disclose immediately and fully
+  before taking any further action, then ask before touching that system
+  again (even for cleanup) — identify affected rows by content/attribute
+  match and verify the fix afterward, don't reconstruct IDs from memory or
+  assume a blast radius without checking it directly.

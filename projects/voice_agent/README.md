@@ -16,12 +16,15 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   audio events.
 - `POST /api/v1/messages` accepts the stable agent message contract. When
   `GEMINI_API_KEY` is set, it produces real Gemini-backed responses (text
-  in, text out, one profile, single-turn, including real tool execution)
-  via plain `generate_content` with function calling
+  in, text out, one profile, including real tool execution) via plain
+  `generate_content` with function calling
   (`backend/services/gemini_chat_handler.py`) — not the Live API, which is
   reserved for Phase 4b's real-time voice use case. Without
   `GEMINI_API_KEY`, the endpoint still responds with `runtime_unavailable`,
-  unchanged from before.
+  unchanged from before. Multi-turn continuity is backed by short-term
+  memory (`MemoryRepository`): recent turns for the same conversation are
+  loaded before each Gemini call and the new exchange is saved after,
+  durable across restarts once `DATABASE_URL` points at PostgreSQL.
 - `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` expose
   stored conversation sessions.
 - Short-term memory (`/api/v1/memory/short-term`) and long-term decision
@@ -49,11 +52,11 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 
 ## Current limitations
 
-- No memory across messages, no audio, no multi-turn conversational
-  continuity, and only one profile (`000_base`). Each message opens a
-  fresh `generate_content` call; nothing is persisted or remembered
-  between messages. Real-time voice (Gemini Live API) is Phase 4b's
-  concern, not implemented here.
+- No long-term decisions (confirmed, durable facts) yet — only recent-turn
+  short-term memory is wired in; `long_term_decisions` needs a confirmation
+  UX that does not exist yet. No audio, and only one profile (`000_base`).
+  Real-time voice (Gemini Live API) is Phase 4b's concern, not implemented
+  here.
 - Only the numbered, cataloged `actions/` are present. The ten flat,
   uncataloged legacy action modules and `features/001_elevenlabs_voice/`
   are not transferred — both are still coupled to the source project's
@@ -65,7 +68,8 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 
 ## Planned evolution
 
-- Phase 4a-bis: wire memory persistence into `gemini_chat_handler.py`.
+- `long_term_decisions` + confirmation UX, once a real need for durable
+  cross-session facts (not just recent-turn continuity) is identified.
 - Phase 4b: Gemini Live API for real-time voice input/output, alongside
   (not replacing) `gemini_chat_handler.py`.
 - Phase 4c: enable and verify `features/002_telegram_bridge` end-to-end.

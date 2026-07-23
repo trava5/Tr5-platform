@@ -24,7 +24,12 @@ def create_app(settings: BackendSettings | None = None) -> FastAPI:
     api_key = os.getenv("GEMINI_API_KEY", "").strip()
     if api_key:
         model = os.getenv("GEMINI_TEXT_MODEL", "models/gemini-2.5-flash").strip()
-        handler = build_handler(api_key=api_key, model=model, profiles_root=BASE_DIR / "profiles")
+        handler = build_handler(
+            api_key=api_key,
+            model=model,
+            profiles_root=BASE_DIR / "profiles",
+            memory=memory,
+        )
         agent_runtime.connect(handler, detail="Gemini generate_content runtime je pripojen.")
 
     app = FastAPI(

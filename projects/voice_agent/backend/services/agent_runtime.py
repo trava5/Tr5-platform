@@ -18,7 +18,9 @@ class RuntimeState:
     detail: str = "Zivy agentni runtime zatim neni pripojeny k backendu."
 
 
-LiveMessageHandler = Callable[[MessageRequest], str | MessageResponse | Awaitable[str | MessageResponse]]
+LiveMessageHandler = Callable[
+    [MessageRequest, str], str | MessageResponse | Awaitable[str | MessageResponse]
+]
 
 
 class AgentRuntime:
@@ -116,7 +118,7 @@ class AgentRuntime:
             )
 
         try:
-            response = handler(request)
+            response = handler(request, conversation.conversation_id)
             if inspect.isawaitable(response):
                 response = await response
             text = self._extract_text(response)

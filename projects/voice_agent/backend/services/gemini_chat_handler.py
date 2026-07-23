@@ -11,10 +11,12 @@ from google import genai
 from google.genai import types
 
 from actions.action_loader import load_action_function
-from backend.schemas import MessageRequest
+from backend.schemas import MessageRequest, ShortTermMemoryItem
+from backend.services.memory import MemoryRepository
 from profiles.profile_loader import Profile
 
 MAX_TOOL_ROUND_TRIPS = 5
+MEMORY_RECENT_TURNS_LIMIT = 20
 
 
 def _current_time_context() -> str:
@@ -79,17 +81,28 @@ def _extract_text(response: types.GenerateContentResponse) -> str:
     return "".join(part.text for part in candidates[0].content.parts if part.text)
 
 
+def _content_from_memory_item(item: ShortTermMemoryItem) -> types.Content:
+    role = "model" if item.role == "assistant" else "user"
+    return types.Content(role=role, parts=[types.Part(text=item.content)])
+
+
 async def handle_message(
     client: genai.Client,
     model: str,
     request: MessageRequest,
+    conversation_id: str,
     profile: Profile,
+    memory: MemoryRepository,
 ) -> str:
     config = build_generation_config(profile)
-    contents: list[types.Content] = [
-        types.Content(role="user", parts=[types.Part(text=request.text)]),
-    ]
+    history = await memory.recent_short_term_turns(
+        limit=MEMORY_RECENT_TURNS_LIMIT,
+        session_id=conversation_id,
+    )
+    contents: list[types.Content] = [_content_from_memory_item(item) for item in history]
+    contents.append(types.Content(role="user", parts=[types.Part(text=request.text)]))
 
+    final_text = ""
     for _ in range(MAX_TOOL_ROUND_TRIPS):
         response = await client.aio.models.generate_content(
             model=model,
@@ -98,7 +111,8 @@ async def handle_message(
         )
         function_calls = _extract_function_calls(response)
         if not function_calls:
-            return _extract_text(response).strip()
+            final_text = _extract_text(response).strip()
+            break
 
         contents.append(response.candidates[0].content)
         contents.append(
@@ -107,26 +121,49 @@ async def handle_message(
                 parts=[execute_tool(call, profile) for call in function_calls],
             )
         )
+    else:
+        final_text = "Agent prekrocil maximalni pocet volani nastroju pro jednu zpravu."
 
-    return "Agent prekrocil maximalni pocet volani nastroju pro jednu zpravu."
+    await memory.save_short_term_turn(role="user", content=request.text, session_id=conversation_id)
+    await memory.save_short_term_turn(role="assistant", content=final_text, session_id=conversation_id)
+    return final_text
 
 
 class GeminiChatHandler:
     """Thin adapter matching AgentRuntime's LiveMessageHandler signature."""
 
-    def __init__(self, client: genai.Client, model: str, profile: Profile) -> None:
+    def __init__(
+        self,
+        client: genai.Client,
+        model: str,
+        profile: Profile,
+        memory: MemoryRepository,
+    ) -> None:
         self._client = client
         self._model = model
         self._profile = profile
+        self._memory = memory
 
-    async def __call__(self, request: MessageRequest) -> str:
-        return await handle_message(self._client, self._model, request, self._profile)
+    async def __call__(self, request: MessageRequest, conversation_id: str) -> str:
+        return await handle_message(
+            self._client,
+            self._model,
+            request,
+            conversation_id,
+            self._profile,
+            self._memory,
+        )
 
 
-def build_handler(api_key: str, model: str, profiles_root: Path) -> GeminiChatHandler:
+def build_handler(
+    api_key: str,
+    model: str,
+    profiles_root: Path,
+    memory: MemoryRepository,
+) -> GeminiChatHandler:
     from actions.tool_catalog import TOOL_CATALOG
     from profiles.profile_loader import load_profile
 
     profile = load_profile("000_base", profiles_root, TOOL_CATALOG)
     client = genai.Client(api_key=api_key)
-    return GeminiChatHandler(client, model, profile)
+    return GeminiChatHandler(client, model, profile, memory)
