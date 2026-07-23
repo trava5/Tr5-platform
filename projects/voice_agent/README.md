@@ -25,6 +25,17 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
   memory (`MemoryRepository`): recent turns for the same conversation are
   loaded before each Gemini call and the new exchange is saved after,
   durable across restarts once `DATABASE_URL` points at PostgreSQL.
+- `WS /api/v1/live/audio` opens a real-time, bidirectional Gemini Live API
+  audio session (`backend/services/gemini_live_audio_handler.py`) when
+  `GEMINI_API_KEY` is set: raw PCM audio in (16-bit, 16kHz mono) is
+  forwarded straight into the Live session; audio out (24kHz), input/output
+  transcripts, and tool execution (reusing the same
+  `backend/services/gemini_common.py` tool-execution logic as
+  `gemini_chat_handler.py`, not a second implementation) stream back over
+  the WebSocket. The backend holds the Live session (Variant A) — a client
+  only streams audio in/out, never talking to Gemini directly. Without
+  `GEMINI_API_KEY`, the connection is accepted then cleanly closed with a
+  `runtime_unavailable` reason, not a bare drop.
 - `GET /api/v1/conversations` and `GET /api/v1/conversations/{id}` expose
   stored conversation sessions.
 - Short-term memory (`/api/v1/memory/short-term`) and long-term decision
@@ -59,10 +70,14 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 ## Current limitations
 
 - No long-term decisions (confirmed, durable facts) yet — only recent-turn
-  short-term memory is wired in; `long_term_decisions` needs a confirmation
-  UX that does not exist yet. No audio, and only one profile (`000_base`).
-  Real-time voice (Gemini Live API) is Phase 4b's concern, not implemented
-  here.
+  short-term memory is wired in (and only for the text endpoint, not live
+  audio); `long_term_decisions` needs a confirmation UX that does not exist
+  yet. Only one profile (`000_base`).
+- Live audio (`/api/v1/live/audio`) has no memory/continuity across
+  sessions, and no desktop or other real client exists yet — it is
+  verified with a scripted WebSocket test client sending raw bytes, not a
+  real microphone. Building that client (`pyaudio` capture/playback) is
+  Phase 4b-2.
 - Only the numbered, cataloged `actions/` are present. The ten flat,
   uncataloged legacy action modules and `features/001_elevenlabs_voice/`
   are not transferred — both are still coupled to the source project's
@@ -76,8 +91,10 @@ the external `jarvis_cesky` project as Phase 1 of a multi-phase migration
 
 - `long_term_decisions` + confirmation UX, once a real need for durable
   cross-session facts (not just recent-turn continuity) is identified.
-- Phase 4b: Gemini Live API for real-time voice input/output, alongside
-  (not replacing) `gemini_chat_handler.py`.
+- Phase 4b-1-bis: memory/continuity for live audio sessions, likely reusing
+  `MemoryRepository` the same way Contract 0006 did for text.
+- Phase 4b-2: real desktop audio client (`pyaudio` capture/playback)
+  talking to `/api/v1/live/audio`.
 - Phase 4c: enable and verify `features/002_telegram_bridge` end-to-end.
 - Platform-level review: define how any Tr5 application connects to the
   voice agent.

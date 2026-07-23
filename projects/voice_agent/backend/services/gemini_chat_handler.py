@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
-from datetime import datetime
 from pathlib import Path
-from zoneinfo import ZoneInfo
 
 from google import genai
 from google.genai import types
 
-from actions.action_loader import load_action_function
 from backend.schemas import MessageRequest, ShortTermMemoryItem
+from backend.services.gemini_common import build_system_instruction, build_tools, execute_tool
 from backend.services.memory import MemoryRepository
 from profiles.profile_loader import Profile
 
@@ -19,52 +16,11 @@ MAX_TOOL_ROUND_TRIPS = 5
 MEMORY_RECENT_TURNS_LIMIT = 20
 
 
-def _current_time_context() -> str:
-    """Aktuální datum a čas, vkládá se čerstvě do každé zprávy.
-
-    Bez tohoto bloku model nemá žádný způsob, jak převést relativní čas
-    ("zítra v 15:00") na skutečné ISO datum — stejný vzor jako
-    main.py's `_build_config` (`[AKTUÁLNÍ ČAS]`), ale počítaný per-message,
-    ne jednou při připojení, protože zde neexistuje trvalá relace.
-    """
-    tz = ZoneInfo(os.getenv("JARVIS_TIMEZONE", "Europe/Prague"))
-    now = datetime.now(tz)
-    return f"[AKTUÁLNÍ ČAS]\n{now.strftime('%d.%m.%Y — %H:%M')}"
-
-
 def build_generation_config(profile: Profile) -> types.GenerateContentConfig:
-    function_declarations = [
-        types.FunctionDeclaration(
-            name=tool["name"],
-            description=tool["description"],
-            parameters=tool["parameters"],
-        )
-        for tool in profile.tools.values()
-    ]
-    system_instruction = f"{_current_time_context()}\n\n{profile.prompt}"
     return types.GenerateContentConfig(
-        system_instruction=system_instruction,
-        tools=[types.Tool(function_declarations=function_declarations)],
+        system_instruction=build_system_instruction(profile),
+        tools=build_tools(profile),
     )
-
-
-def execute_tool(function_call: types.FunctionCall, profile: Profile) -> types.Part:
-    name = function_call.name
-    tool = profile.tools.get(name)
-    if tool is None:
-        return types.Part.from_function_response(
-            name=name,
-            response={"error": f"Neznamy nastroj '{name}'."},
-        )
-    try:
-        function = load_action_function(tool["module"], tool["function"])
-        result = function(**dict(function_call.args or {}))
-    except Exception as exc:
-        return types.Part.from_function_response(
-            name=name,
-            response={"error": f"Nastroj '{name}' selhal: {exc}"},
-        )
-    return types.Part.from_function_response(name=name, response={"result": result})
 
 
 def _extract_function_calls(response: types.GenerateContentResponse) -> list[types.FunctionCall]:

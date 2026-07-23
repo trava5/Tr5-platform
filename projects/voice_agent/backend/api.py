@@ -21,6 +21,7 @@ from .schemas import (
 )
 from .services.agent_runtime import AgentRuntime
 from .services.conversations import ConversationRepository
+from .services.gemini_live_audio_handler import GeminiLiveAudioHandler
 from .services.memory import MemoryRepository
 from .services.memory_migration import import_sqlite_memory
 from .services.realtime import RealtimeEventHub
@@ -33,6 +34,7 @@ def create_api_router(
     memory: MemoryRepository | None = None,
     agent_runtime: AgentRuntime | None = None,
     realtime_events: RealtimeEventHub | None = None,
+    live_audio_handler: GeminiLiveAudioHandler | None = None,
 ) -> APIRouter:
     router = APIRouter(prefix=settings.api_prefix)
     conversations = conversations or create_conversation_repository(settings)
@@ -89,6 +91,19 @@ def create_api_router(
             pass
         finally:
             await realtime_events.disconnect(websocket)
+
+    @router.websocket("/live/audio")
+    async def live_audio(websocket: WebSocket) -> None:
+        await websocket.accept()
+        if live_audio_handler is None:
+            await websocket.send_json({
+                "type": "error",
+                "status": "runtime_unavailable",
+                "detail": "Zivy audio Gemini runtime zatim neni pripojeny k backendu.",
+            })
+            await websocket.close(code=1008)
+            return
+        await live_audio_handler.handle_connection(websocket)
 
     @router.post("/messages", response_model=MessageResponse)
     async def create_message(message: MessageRequest) -> MessageResponse:
