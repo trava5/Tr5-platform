@@ -300,11 +300,13 @@ deliberately-empty environment, or an explicit `TESTING`-gated code path
 that a real deployment can never accidentally take) — not simply instruct
 "don't use the real one."
 
-Open follow-up, not yet resolved: `backend/app.py`'s module-level
-`create_app()` side effect on import is itself worth revisiting — a
-future Contract should consider whether the app factory can be made safe
-to import without side effects, independent of whatever test discipline
-individual Contracts practice.
+Resolved by Contract 0007: `backend/app.py`'s module-level `create_app()`
+side effect was removed (uvicorn factory pattern), and
+`GEMINI_API_KEY`/`GEMINI_TEXT_MODEL` were moved into `BackendSettings`, so
+an explicit settings object is now a complete isolation boundary rather
+than a partial one. Verified against the exact scenario that caused the
+original incident (a real-looking `.env` present, import alone, and an
+explicit-settings call) — see Contract 0007's Implementation Review.
 
 ---
 
@@ -366,16 +368,6 @@ requires it (see Backlog).
 These are known unresolved decisions. They are intentionally left open until
 a real case forces the decision — per P2.
 
-- **[Priority — safety-relevant] Test/production isolation mechanism
-  (P21).** `backend/app.py`'s module-level `app = create_app()` triggers
-  real settings loading on import, which contributed to a real incident
-  (Contract 0006) where verification code reached the person's real
-  Gemini API and real Postgres database. Needs a real structural fix
-  (dependency injection, subprocess isolation, or a `TESTING`-gated path),
-  not just documented caution. Should be addressed before Phase 4c
-  (Telegram bridge — a channel with its own real external side effects)
-  if not sooner, given it directly affects verification safety for every
-  subsequent Contract.
 - **`projects/platform_shell/` (future direction, discussed not yet
   scheduled).** Tr5 needs a universal entry point for the whole platform —
   see P17 for the accepted design stance (click is the mandatory, primary
