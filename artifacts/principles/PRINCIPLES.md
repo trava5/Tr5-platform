@@ -310,6 +310,25 @@ explicit-settings call) — see Contract 0007's Implementation Review.
 
 ---
 
+### P22 — A fake must be realistic enough not to manufacture failures a real dependency would never cause.
+Status: Active
+
+Extracted from Contract 0009's review: a fake microphone stream that
+returned data instantly (no delay) made a correctly-working client appear
+to hang indefinitely — the tight, unpaced send loop a real microphone's
+natural timing would never produce. P21 established that fakes are
+necessary for safe isolation from real external systems; this is the
+complementary caution — an unrealistic fake can point the same isolation
+discipline at a false conclusion. Confirmed by re-running with a
+timing-accurate fake (matching the real dependency's natural pacing, not
+just its interface), after which the "hang" disappeared. Worth a specific
+check whenever a fake stands in for something with real-world timing
+behavior (audio, network latency, hardware polling): does the fake's
+*pace*, not just its *interface*, resemble the real thing closely enough
+that a pass or failure means what it appears to mean.
+
+---
+
 ## Roles
 
 | Role | Responsibility |

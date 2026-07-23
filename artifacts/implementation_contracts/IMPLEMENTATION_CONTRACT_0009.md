@@ -1,6 +1,6 @@
 # IMPLEMENTATION_CONTRACT_0009
 
-Status: Accepted
+Status: Implemented
 
 ---
 
@@ -308,7 +308,47 @@ verification style (Contract 0004's precedent).
 
 # Implementation Review
 
-(To be completed after implementation.)
+### Round 1 — 2026-07-23 — Verdict: Accepted
+Reviewer: Architect
+
+Confirmed `pyaudio` is uninstallable in this Architect's own sandbox too
+(missing system `portaudio`, a different root cause than the Agent's
+Windows/Python 3.14 finding, but the same practical consequence) —
+independently corroborates that faking `pyaudio` was a genuine necessity
+for verification anywhere but a real desktop, not a workaround specific
+to one environment.
+
+Verified the two real-run Acceptance Criteria independently, with a fresh
+fake `pyaudio` module and a real `websockets.sync.server` (not the
+Agent's test scripts): (1) `runtime_unavailable` handling — client
+connects, receives the error event, prints it, and exits with code 1;
+confirmed via an actual run. (2) Mid-stream disconnect — first attempt
+used a fake microphone stream that returns instantly (no delay), and
+`run()` hung indefinitely (10s timeout). Traced it with print
+instrumentation before concluding anything: both the send and receive
+threads stalled after the server closed the connection cleanly. Suspected
+the fake stream's unrealistic zero-delay reads (a tight send-loop with no
+pacing, unlike any real microphone) rather than a defect in the shipped
+code, and re-ran with `time.sleep(n / 16000)` added to the fake stream to
+match real hardware's natural pacing — `run()` then returned cleanly in
+under half a second. Recorded as a false alarm from this Architect's own
+first test design, not a product defect, and corrected before concluding.
+Verifying with unrealistic fakes can manufacture failures a real client
+would never hit — worth remembering for any future audio-adjacent
+verification.
+
+Status changed to `Implemented`.
+
+**Flagging for the person directly, not just in Completion Notes:** the
+Agent's `pyaudio` installability finding (no prebuilt wheel for
+`cp314-win_amd64`, source build needs Microsoft Visual C++ Build Tools) is
+very likely to recur when you run this locally, since your `.venv` is
+already on Python 3.14. Two practical paths: install "Microsoft C++ Build
+Tools" (Visual Studio installer, "Desktop development with C++" workload)
+and retry `pip install pyaudio`; or use a Python version with existing
+prebuilt wheels if that's simpler for you. This is a real environment
+matter for you to resolve locally — not something any Contract can fix
+from here.
 
 ---
 
